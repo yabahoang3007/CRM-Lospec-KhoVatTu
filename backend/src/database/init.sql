@@ -410,5 +410,5 @@ ON CONFLICT (id) DO NOTHING;
 -- Hash này tương ứng với 'admin123'
 INSERT INTO users (id, email, password, full_name, role, is_active)
 VALUES
-('5b897853-7e2c-472b-8bd9-bba6abdedcfa', 'admin@lospec.com', '$2b$10$k2FBlZYgm8pjpa0s5jXU9OPGaJu5QXgNL7adlXil7a3PI47n.QwMi', 'Administrator', 'admin', true)
+('5b897853-7e2c-472b-8bd9-bba6abdedcfa', 'admin@lospec.com', '$2b$10$I2rkP6YyA9zP5SQj8PpFwOde/LsLpw3HwT44lDL0SaZefRfaiJUkq', 'Administrator', 'admin', true)
 ON CONFLICT (email) DO NOTHING;
