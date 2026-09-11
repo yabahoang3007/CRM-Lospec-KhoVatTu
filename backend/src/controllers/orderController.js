@@ -84,11 +84,27 @@ export const createOrder = async (req, res) => {
       payment_method,
       notes,
       promotion_code,
+      payment_status,
+      paid_amount,
     } = req.body;
     const userId = req.user.id;
 
     if (!items || items.length === 0)
       return res.status(400).json({ message: "Giỏ hàng trống" });
+
+    // Mặc định 'paid' (thanh toán ngay) để tương thích với các lời gọi cũ.
+    // 'unpaid'/'partial' = bán chịu, bắt buộc phải gắn với 1 khách hàng cụ thể.
+    const finalPaymentStatus = ["paid", "unpaid", "partial"].includes(
+      payment_status
+    )
+      ? payment_status
+      : "paid";
+
+    if (finalPaymentStatus !== "paid" && !customer_id) {
+      return res
+        .status(400)
+        .json({ message: "Bán chịu (ghi nợ) bắt buộc phải chọn khách hàng" });
+    }
 
     await client.query("BEGIN");
 
@@ -104,7 +120,7 @@ export const createOrder = async (req, res) => {
 
     const orderQuery = `
       INSERT INTO orders (customer_id, user_id, status, subtotal, discount, tax, total, payment_method, payment_status, notes)
-      VALUES ($1, $2, 'completed', $3, $4, $5, $6, $7, 'paid', $8)
+      VALUES ($1, $2, 'completed', $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, order_number, created_at, subtotal, discount, tax, total
     `;
     const orderResult = await client.query(orderQuery, [
@@ -115,6 +131,7 @@ export const createOrder = async (req, res) => {
       tax,
       total,
       payment_method,
+      finalPaymentStatus,
       notes,
     ]);
     const order = orderResult.rows[0];
@@ -157,6 +174,35 @@ export const createOrder = async (req, res) => {
         `UPDATE customers SET total_orders = total_orders + 1, total_spent = total_spent + $1, updated_at = NOW() WHERE id = $2`,
         [total, customer_id]
       );
+    }
+
+    // Đồng bộ công nợ: đơn thanh toán đủ -> tự ghi 1 phiếu thu bằng đúng tổng tiền
+    // (giúp công nợ khách hàng không bị "ảo" tăng lên vì đơn đã trả tiền ngay).
+    // Đơn "partial" -> ghi phiếu thu đúng số đã trả trước, phần còn lại thành nợ.
+    // Đơn "unpaid" -> không ghi phiếu thu, toàn bộ giá trị đơn thành nợ.
+    if (customer_id && finalPaymentStatus !== "unpaid") {
+      const amountToRecord =
+        finalPaymentStatus === "partial"
+          ? Math.min(Math.max(Number(paid_amount) || 0, 0), total)
+          : total;
+
+      if (amountToRecord > 0) {
+        const paymentNumber = `PT-${Date.now().toString().slice(-8)}`;
+        await client.query(
+          `INSERT INTO customer_payments
+           (payment_number, customer_id, order_id, amount, payment_method, notes, user_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            paymentNumber,
+            customer_id,
+            order.id,
+            amountToRecord,
+            payment_method || "cash",
+            `Thanh toán tại đơn hàng ${order.order_number}`,
+            userId,
+          ]
+        );
+      }
     }
 
     if (promotion_code) {

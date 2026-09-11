@@ -15,14 +15,30 @@ export const getAllSuppliers = async (req, res) => {
 // Tạo nhà cung cấp mới
 export const createSupplier = async (req, res) => {
   try {
-    const { name, contact_person, email, phone, address, tax_code } = req.body;
+    const {
+      name,
+      contact_person,
+      email,
+      phone,
+      address,
+      tax_code,
+      opening_balance,
+    } = req.body;
 
     const query = `
-      INSERT INTO suppliers (name, contact_person, email, phone, address, tax_code)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO suppliers (name, contact_person, email, phone, address, tax_code, opening_balance)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const values = [name, contact_person, email, phone, address, tax_code];
+    const values = [
+      name,
+      contact_person,
+      email,
+      phone,
+      address,
+      tax_code,
+      opening_balance || 0,
+    ];
 
     const result = await pool.query(query, values);
     res.status(201).json(result.rows[0]);
@@ -35,15 +51,33 @@ export const createSupplier = async (req, res) => {
 export const updateSupplier = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, contact_person, email, phone, address, tax_code } = req.body;
+    const {
+      name,
+      contact_person,
+      email,
+      phone,
+      address,
+      tax_code,
+      opening_balance,
+    } = req.body;
 
     const query = `
       UPDATE suppliers
-      SET name=$1, contact_person=$2, email=$3, phone=$4, address=$5, tax_code=$6, updated_at=NOW()
-      WHERE id=$7
+      SET name=$1, contact_person=$2, email=$3, phone=$4, address=$5, tax_code=$6,
+          opening_balance=COALESCE($7, opening_balance), updated_at=NOW()
+      WHERE id=$8
       RETURNING *
     `;
-    const values = [name, contact_person, email, phone, address, tax_code, id];
+    const values = [
+      name,
+      contact_person,
+      email,
+      phone,
+      address,
+      tax_code,
+      opening_balance === undefined ? null : opening_balance,
+      id,
+    ];
 
     const result = await pool.query(query, values);
 

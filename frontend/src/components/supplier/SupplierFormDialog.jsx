@@ -29,6 +29,7 @@ export function SupplierFormDialog({
     email: "",
     address: "",
     tax_code: "",
+    opening_balance: "0",
   });
 
   // Reset form hoặc điền dữ liệu khi mở
@@ -42,6 +43,7 @@ export function SupplierFormDialog({
           email: supplier.email || "",
           address: supplier.address || "",
           tax_code: supplier.tax_code || "",
+          opening_balance: String(supplier.opening_balance ?? 0),
         });
       } else {
         setFormData({
@@ -51,6 +53,7 @@ export function SupplierFormDialog({
           email: "",
           address: "",
           tax_code: "",
+          opening_balance: "0",
         });
       }
     }
@@ -67,13 +70,17 @@ export function SupplierFormDialog({
 
     setLoading(true);
     try {
+      const payload = {
+        ...formData,
+        opening_balance: Number(formData.opening_balance) || 0,
+      };
       if (supplier) {
         // Update
-        await api.put(`/suppliers/${supplier.id}`, formData);
+        await api.put(`/suppliers/${supplier.id}`, payload);
         toast.success("Cập nhật nhà cung cấp thành công");
       } else {
         // Create
-        await api.post("/suppliers", formData);
+        await api.post("/suppliers", payload);
         toast.success("Thêm nhà cung cấp mới thành công");
       }
       onSuccess(); // Reload list
@@ -168,6 +175,18 @@ export function SupplierFormDialog({
               placeholder="Địa chỉ văn phòng/kho..."
               rows={2}
               value={formData.address}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="opening_balance">Nợ đầu kỳ (công nợ ban đầu)</Label>
+            <Input
+              id="opening_balance"
+              name="opening_balance"
+              type="number"
+              placeholder="0"
+              value={formData.opening_balance}
               onChange={handleChange}
             />
           </div>

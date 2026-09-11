@@ -11,6 +11,7 @@ import reportRouter from "./routes/reportRoute.js";
 import financeRouter from "./routes/financeRoute.js";
 import settingRouter from "./routes/settingRoute.js";
 import promotionRouter from "./routes/promotionRoute.js";
+import debtRouter from "./routes/debtRoute.js";
 
 dotenv.config();
 const PORT = process.env.PORT || 3001;
@@ -33,6 +34,7 @@ app.use("/api/promotions", promotionRouter);
 app.use("/api/reports", reportRouter);
 app.use("/api/finances", financeRouter);
 app.use("/api/settings", settingRouter);
+app.use("/api/debts", debtRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search,
   Plus,
@@ -56,6 +57,7 @@ export function POSView() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [receivedAmount, setReceivedAmount] = useState(0);
+  const [isCreditSale, setIsCreditSale] = useState(false); // Ghi nợ - khách chưa thanh toán
 
   // Discount State
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -202,6 +204,7 @@ export function POSView() {
     setPromoCode("");
     setAppliedPromo(null);
     setDiscountType("percent");
+    setIsCreditSale(false);
   };
 
   // --- TÍNH TOÁN TIỀN ---
@@ -288,7 +291,9 @@ export function POSView() {
 
   const handlePayment = async () => {
     if (cart.length === 0) return toast.error("Giỏ hàng trống");
-    if (paymentMethod === "cash" && receivedAmount < total)
+    if (isCreditSale && !selectedCustomer)
+      return toast.error("Bán chịu (ghi nợ) bắt buộc phải chọn khách hàng");
+    if (!isCreditSale && paymentMethod === "cash" && receivedAmount < total)
       return toast.error("Tiền khách đưa không đủ");
 
     setProcessing(true);
@@ -305,7 +310,8 @@ export function POSView() {
         discount: calculatedDiscount,
         payment_method: paymentMethod,
         promotion_code: appliedPromo?.code || null,
-        notes: `Bán tại quầy`,
+        payment_status: isCreditSale ? "unpaid" : "paid",
+        notes: isCreditSale ? "Bán chịu tại quầy (ghi nợ)" : `Bán tại quầy`,
       };
 
       const { data } = await api.post("/orders", payload);
@@ -313,9 +319,12 @@ export function POSView() {
       setLastOrder(data.order);
       setLastOrderItems([...cart]);
 
-      toast.success("Thanh toán thành công!");
+      toast.success(
+        isCreditSale ? "Đã ghi nợ đơn hàng cho khách" : "Thanh toán thành công!"
+      );
       setShowPaymentDialog(false);
       setShowReceipt(true);
+      setIsCreditSale(false);
 
       // clearCart();
       fetchData();
@@ -427,11 +436,12 @@ export function POSView() {
           <div className="flex gap-2">
             <Select
               value={selectedCustomer?.id || "guest"}
-              onValueChange={(val) =>
-                setSelectedCustomer(
-                  val === "guest" ? null : customers.find((c) => c.id === val)
-                )
-              }
+              onValueChange={(val) => {
+                const next =
+                  val === "guest" ? null : customers.find((c) => c.id === val);
+                setSelectedCustomer(next);
+                if (!next) setIsCreditSale(false);
+              }}
             >
               <SelectTrigger className="flex-1 bg-white text-sm">
                 <SelectValue placeholder="Khách lẻ" />
@@ -729,8 +739,28 @@ export function POSView() {
                 {formatCurrency(total)}
               </span>
             </div>
+            {/* Ghi nợ - khách chưa thanh toán */}
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Checkbox
+                id="creditSale"
+                checked={isCreditSale}
+                disabled={!selectedCustomer}
+                onCheckedChange={(checked) => setIsCreditSale(!!checked)}
+              />
+              <div>
+                <Label htmlFor="creditSale" className="font-medium text-amber-800">
+                  Ghi nợ (khách chưa thanh toán)
+                </Label>
+                <p className="text-xs text-amber-700">
+                  {selectedCustomer
+                    ? "Đơn hàng sẽ được cộng vào công nợ của khách."
+                    : "Cần chọn khách hàng để bán chịu."}
+                </p>
+              </div>
+            </div>
+
             {/* Payment methods... */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className={`grid grid-cols-3 gap-4 ${isCreditSale ? "opacity-50 pointer-events-none" : ""}`}>
               <Button
                 variant={paymentMethod === "cash" ? "default" : "outline"}
                 onClick={() => setPaymentMethod("cash")}
@@ -753,7 +783,7 @@ export function POSView() {
                 <CreditCard className="h-4 w-4" /> Thẻ
               </Button>
             </div>
-            {paymentMethod === "cash" && (
+            {!isCreditSale && paymentMethod === "cash" && (
               <div className="space-y-2 bg-gray-100 p-4 rounded border">
                 <Label>Tiền khách đưa</Label>
                 <Input

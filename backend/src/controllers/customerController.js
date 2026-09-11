@@ -72,6 +72,7 @@ export const createCustomer = async (req, res) => {
       birth_date,
       gender,
       customer_type,
+      opening_balance,
     } = req.body;
 
     // Check trùng sđt
@@ -87,9 +88,9 @@ export const createCustomer = async (req, res) => {
     const query = `
       INSERT INTO customers (
         name, phone, email, address, city, notes,
-        birth_date, gender, customer_type
+        birth_date, gender, customer_type, opening_balance
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
 
@@ -103,6 +104,7 @@ export const createCustomer = async (req, res) => {
       birth_date || null,
       gender || "male",
       customer_type || "regular",
+      opening_balance || 0,
     ];
 
     const result = await pool.query(query, values);
@@ -126,6 +128,7 @@ export const updateCustomer = async (req, res) => {
       customer_type,
       birth_date,
       gender,
+      opening_balance,
     } = req.body;
 
     const query = `
@@ -139,8 +142,9 @@ export const updateCustomer = async (req, res) => {
           customer_type = $7,
           birth_date = $8,
           gender = $9,
+          opening_balance = COALESCE($10, opening_balance),
           updated_at = NOW()
-      WHERE id = $10
+      WHERE id = $11
       RETURNING *
     `;
 
@@ -154,6 +158,7 @@ export const updateCustomer = async (req, res) => {
       customer_type,
       birth_date || null,
       gender,
+      opening_balance === undefined ? null : opening_balance,
       id,
     ];
 

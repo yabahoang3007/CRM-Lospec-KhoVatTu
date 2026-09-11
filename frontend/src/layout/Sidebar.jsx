@@ -13,6 +13,7 @@ import {
   BarChart3,
   UserCog,
   Clock,
+  HandCoins,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -76,6 +77,12 @@ const menuItems = [
     icon: BarChart3,
     name: "Báo cáo & Thống kê",
     path: "/reports",
+    roles: ["manager", "admin"],
+  },
+  {
+    icon: HandCoins,
+    name: "Công nợ & Thu chi",
+    path: "/debts",
     roles: ["manager", "admin"],
   },
   {

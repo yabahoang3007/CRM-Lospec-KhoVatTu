@@ -39,6 +39,7 @@ export function CustomerFormDialog({
     gender: "male",
     membershipTier: "bronze",
     notes: "",
+    opening_balance: "0",
   });
 
   // Helper: Map từ DB sang UI
@@ -69,6 +70,7 @@ export function CustomerFormDialog({
         gender: customer.gender || "male",
         membershipTier: mapTypeToTier(customer.customer_type),
         notes: customer.notes || "",
+        opening_balance: String(customer.opening_balance ?? 0),
       });
     } else {
       setFormData({
@@ -81,6 +83,7 @@ export function CustomerFormDialog({
         gender: "male",
         membershipTier: "bronze",
         notes: "",
+        opening_balance: "0",
       });
     }
   }, [customer, open]);
@@ -104,6 +107,7 @@ export function CustomerFormDialog({
         gender: formData.gender || null,
         customer_type: mapTierToType(formData.membershipTier),
         notes: formData.notes || null,
+        opening_balance: Number(formData.opening_balance) || 0,
         is_active: true,
       };
 
@@ -264,6 +268,22 @@ export function CustomerFormDialog({
                   setFormData({ ...formData, city: e.target.value })
                 }
                 placeholder="Hà Nội, TP.HCM..."
+              />
+            </div>
+
+            {/* Opening balance */}
+            <div className="col-span-1">
+              <Label htmlFor="opening_balance">
+                Nợ đầu kỳ (công nợ ban đầu)
+              </Label>
+              <Input
+                id="opening_balance"
+                type="number"
+                value={formData.opening_balance}
+                onChange={(e) =>
+                  setFormData({ ...formData, opening_balance: e.target.value })
+                }
+                placeholder="0"
               />
             </div>
 

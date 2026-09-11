@@ -15,6 +15,7 @@ import Promotion from "./pages/Promotion";
 import Report from "./pages/Report";
 import Staff from "./pages/Staff";
 import Finance from "./pages/Finance";
+import Debt from "./pages/Debt";
 import Setting from "./pages/Setting";
 import { Toaster } from "sonner";
 import Attendance from "./pages/Attendance";
@@ -57,6 +58,7 @@ const App = () => {
               <Route path="/promotions" element={<Promotion />} />
               <Route path="/staff" element={<Staff />} />
               <Route path="/reports" element={<Report />} />
+              <Route path="/debts" element={<Debt />} />
             </Route>
 
             {/* ADMIN */}

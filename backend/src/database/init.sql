@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS customers (
     total_spent numeric(15,2) DEFAULT 0 CHECK (total_spent >= 0),
     total_orders integer DEFAULT 0 CHECK (total_orders >= 0),
     notes text,
+    opening_balance numeric(15,2) NOT NULL DEFAULT 0,
     birth_date date,
     gender character varying(20) DEFAULT 'male',
     is_active boolean DEFAULT true,
@@ -134,6 +135,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
     bank_account character varying(100),
     bank_name character varying(255),
     notes text,
+    opening_balance numeric(15,2) NOT NULL DEFAULT 0,
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
@@ -271,6 +273,34 @@ CREATE TABLE IF NOT EXISTS staff_attendance (
     UNIQUE(user_id, date)
 );
 
+-- Table: Customer Payments (Phiếu thu tiền khách hàng)
+CREATE TABLE IF NOT EXISTS customer_payments (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    payment_number character varying(50) UNIQUE,
+    customer_id uuid NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    order_id uuid REFERENCES orders(id) ON DELETE SET NULL,
+    amount numeric(15,2) NOT NULL CHECK (amount > 0),
+    payment_method character varying(50) DEFAULT 'cash' CHECK (payment_method IN ('cash', 'transfer', 'card')),
+    payment_date date DEFAULT CURRENT_DATE,
+    notes text,
+    user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+-- Table: Supplier Payments (Phiếu chi trả nhà cung cấp)
+CREATE TABLE IF NOT EXISTS supplier_payments (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    payment_number character varying(50) UNIQUE,
+    supplier_id uuid NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    purchase_order_id uuid REFERENCES purchase_orders(id) ON DELETE SET NULL,
+    amount numeric(15,2) NOT NULL CHECK (amount > 0),
+    payment_method character varying(50) DEFAULT 'cash' CHECK (payment_method IN ('cash', 'transfer', 'card')),
+    payment_date date DEFAULT CURRENT_DATE,
+    notes text,
+    user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
 -- 3. CREATE VIEWS
 
 -- View: Low Stock
@@ -304,6 +334,46 @@ WHERE o.status = 'completed'
 GROUP BY p.id, p.name, p.sku
 ORDER BY sum(oi.quantity) DESC;
 
+-- View: Công nợ khách hàng (còn phải thu)
+CREATE OR REPLACE VIEW view_customer_debts AS
+SELECT
+  c.id, c.name, c.phone, c.address, c.customer_type, c.opening_balance,
+  COALESCE(o.purchased, 0) AS purchased_total,
+  COALESCE(p.paid, 0) AS paid_total,
+  (c.opening_balance + COALESCE(o.purchased, 0) - COALESCE(p.paid, 0)) AS balance
+FROM customers c
+LEFT JOIN (
+  SELECT customer_id, SUM(total) AS purchased
+  FROM orders WHERE status = 'completed'
+  GROUP BY customer_id
+) o ON o.customer_id = c.id
+LEFT JOIN (
+  SELECT customer_id, SUM(amount) AS paid
+  FROM customer_payments
+  GROUP BY customer_id
+) p ON p.customer_id = c.id
+WHERE c.is_active = true;
+
+-- View: Công nợ nhà cung cấp (còn phải trả)
+CREATE OR REPLACE VIEW view_supplier_debts AS
+SELECT
+  s.id, s.name, s.phone, s.address, s.opening_balance,
+  COALESCE(po.purchased, 0) AS purchased_total,
+  COALESCE(sp.paid, 0) AS paid_total,
+  (s.opening_balance + COALESCE(po.purchased, 0) - COALESCE(sp.paid, 0)) AS balance
+FROM suppliers s
+LEFT JOIN (
+  SELECT supplier_id, SUM(total) AS purchased
+  FROM purchase_orders WHERE status = 'received'
+  GROUP BY supplier_id
+) po ON po.supplier_id = s.id
+LEFT JOIN (
+  SELECT supplier_id, SUM(amount) AS paid
+  FROM supplier_payments
+  GROUP BY supplier_id
+) sp ON sp.supplier_id = s.id
+WHERE s.is_active = true;
+
 -- 4. CREATE INDEXES & TRIGGERS
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
@@ -311,6 +381,10 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
 CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON staff_attendance(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_customer_payments_customer ON customer_payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_payments_order ON customer_payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_payments_po ON supplier_payments(purchase_order_id);
 
 -- Attach Triggers
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
