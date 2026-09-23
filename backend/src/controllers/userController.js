@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { pool } from "../config/database.js";
 
 // Lấy thông tin user đang đăng nhập (từ token)
