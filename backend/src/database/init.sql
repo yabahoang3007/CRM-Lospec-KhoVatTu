@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 CREATE TABLE IF NOT EXISTS customers (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     name character varying(255) NOT NULL,
-    phone character varying(20),
+    phone character varying(50), -- rộng hơn 20 ký tự: một số dữ liệu gốc có 2 SĐT trong 1 ô
     email character varying(255),
     address text,
     city character varying(100),
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS products (
     unit character varying(50) DEFAULT 'piece',
     price numeric(15,2) DEFAULT 0 CHECK (price >= 0),
     cost numeric(15,2) DEFAULT 0 CHECK (cost >= 0),
-    stock_quantity integer DEFAULT 0 CHECK (stock_quantity >= 0),
+    stock_quantity integer DEFAULT 0, -- cho phép âm: phản ánh trường hợp bán vượt tồn thực tế (khớp dữ liệu gốc)
     min_stock integer DEFAULT 10 CHECK (min_stock >= 0),
     max_stock integer DEFAULT 1000 CHECK (max_stock >= 0),
     image_url text,
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
     name character varying(255) NOT NULL,
     contact_person character varying(255),
     email character varying(255),
-    phone character varying(20),
+    phone character varying(50),
     address text,
     city character varying(100),
     tax_code character varying(50),
