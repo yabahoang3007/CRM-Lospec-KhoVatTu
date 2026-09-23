@@ -40,3 +40,12 @@ app.use("/api/debts", debtRouter);
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// Lưới an toàn cuối cùng: log lỗi thay vì để Node crash toàn bộ tiến trình
+// (một promise reject không được catch ở đâu đó không nên làm sập cả server).
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
