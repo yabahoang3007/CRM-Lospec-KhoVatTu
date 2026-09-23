@@ -14,7 +14,8 @@ import promotionRouter from "./routes/promotionRoute.js";
 import debtRouter from "./routes/debtRoute.js";
 
 dotenv.config();
-const PORT = process.env.PORT || 3001;
+// 3000: khớp với cổng mà Dockerfile do VibeHost tự sinh EXPOSE cho service backend
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.use(cors());

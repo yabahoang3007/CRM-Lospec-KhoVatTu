@@ -1,5 +1,8 @@
 .env
-.env.*
+# .env.production KHÔNG bị ignore: VibeHost build image trực tiếp từ Git,
+# Vite cần đọc VITE_API_URL từ file này ngay trong bước "npm run build"
+# bên trong Docker — biến môi trường set ở dashboard chỉ áp dụng lúc
+# container CHẠY (sau khi build), nên không kịp cho bước build tĩnh này.
 # Logs
 logs
 *.log
