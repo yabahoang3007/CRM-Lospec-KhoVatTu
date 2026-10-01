@@ -71,9 +71,12 @@ export function RevenueChart({ data }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-600 gap-2">
+            <div className="h-full flex flex-col items-center justify-center text-gray-600 gap-2 text-center px-4">
               <TrendingUp className="h-8 w-8" />
-              <p>Chưa có dữ liệu trong khoảng thời gian này</p>
+              <p>Không có đơn hàng nào trong khoảng thời gian đã chọn</p>
+              <p className="text-sm text-gray-400">
+                Thử chọn lại khoảng ngày khác ở bộ lọc phía trên
+              </p>
             </div>
           )}
         </div>
