@@ -36,7 +36,8 @@ const App = () => {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/profile" element={<Profile />} />
 
-            {/* STAFF + MANAGER + ADMIN */}
+            {/* STAFF + MANAGER + ADMIN — khớp các sheet Excel, ai cũng xem
+                được hết giống khi mở file Excel gốc (không phân quyền) */}
             <Route
               element={
                 <PrivateRoute allowedRoles={["staff", "manager", "admin"]} />
@@ -47,23 +48,23 @@ const App = () => {
               <Route path="/pos" element={<POS />} />
               <Route path="/customers" element={<Customer />} />
               <Route path="/warehouses" element={<Warehouse />} />"
+              <Route path="/suppliers" element={<Supplier />} />
+              <Route path="/debts" element={<Debt />} />
+              <Route path="/finances" element={<Finance />} />
               <Route path="/attendance" element={<Attendance />} />
             </Route>
 
-            {/* MANAGER + ADMIN */}
+            {/* MANAGER + ADMIN — tạm ẩn khỏi menu, giữ route để dùng lại sau */}
             <Route
               element={<PrivateRoute allowedRoles={["manager", "admin"]} />}
             >
-              <Route path="/suppliers" element={<Supplier />} />
               <Route path="/promotions" element={<Promotion />} />
               <Route path="/staff" element={<Staff />} />
               <Route path="/reports" element={<Report />} />
-              <Route path="/debts" element={<Debt />} />
             </Route>
 
             {/* ADMIN */}
             <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
-              <Route path="/finances" element={<Finance />} />
               <Route path="/settings" element={<Setting />} />
             </Route>
           </Route>

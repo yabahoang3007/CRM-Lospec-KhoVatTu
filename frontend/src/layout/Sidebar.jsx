@@ -8,88 +8,73 @@ import {
   ShoppingCart,
   Users,
   Truck,
-  Megaphone,
   Wallet,
-  BarChart3,
-  UserCog,
-  Clock,
   HandCoins,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
+// Menu được sắp theo ĐÚNG thứ tự các sheet trong file Excel gốc "Sổ bán
+// hàng" để người quen dùng Excel tìm thấy ngay — mỗi mục dưới đây tương
+// ứng 1-1 với 1 sheet (ghi rõ trong comment). Các chức năng KHÔNG có
+// trong Excel (khuyến mãi, chấm công, nhân viên, báo cáo biểu đồ...) tạm
+// ẩn khỏi menu — trang/route vẫn còn nguyên, chỉ không hiện ở đây.
 const menuItems = [
   {
+    // Sheet: Tổng_Quan
     icon: LayoutDashboard,
     name: "Tổng quan",
     path: "/dashboard",
     roles: ["staff", "manager", "admin"],
   },
   {
-    icon: Package,
-    name: "Sản phẩm",
-    path: "/products",
-    roles: ["staff", "manager", "admin"],
-  },
-  {
-    icon: ShoppingCart,
-    name: "Bán hàng",
-    path: "/pos",
-    roles: ["staff", "manager", "admin"],
-  },
-  {
+    // Sheet: Khách_Hàng
     icon: Users,
     name: "Khách hàng",
     path: "/customers",
     roles: ["staff", "manager", "admin"],
   },
   {
+    // Sheet: Nhà_Cung_Cấp
+    icon: Truck,
+    name: "Nhà cung cấp",
+    path: "/suppliers",
+    roles: ["staff", "manager", "admin"],
+  },
+  {
+    // Sheet: Sản_Phẩm
+    icon: Package,
+    name: "Sản phẩm",
+    path: "/products",
+    roles: ["staff", "manager", "admin"],
+  },
+  {
+    // Sheet: DL_Đơn_Hàng
+    icon: ShoppingCart,
+    name: "Bán hàng",
+    path: "/pos",
+    roles: ["staff", "manager", "admin"],
+  },
+  {
+    // Sheet: Thanh_Toán + Trả_NCC + (trả hàng)
+    icon: HandCoins,
+    name: "Công nợ & Thu chi",
+    path: "/debts",
+    roles: ["staff", "manager", "admin"],
+  },
+  {
+    // Sheet: Nhập_Hàng
     icon: Warehouse,
     name: "Kho hàng",
     path: "/warehouses",
     roles: ["staff", "manager", "admin"],
   },
   {
-    icon: Truck,
-    name: "Nhà cung cấp",
-    path: "/suppliers",
-    roles: ["manager", "admin"],
-  },
-  {
-    icon: Megaphone,
-    name: "Khuyến mãi & Marketing",
-    path: "/promotions",
-    roles: ["manager", "admin"],
-  },
-  {
-    icon: Clock,
-    name: "Chấm công",
-    path: "/attendance",
-    roles: ["staff", "manager", "admin"],
-  },
-  {
-    icon: UserCog,
-    name: "Nhân viên & Phân quyền",
-    path: "/staff",
-    roles: ["manager", "admin"],
-  },
-  {
-    icon: BarChart3,
-    name: "Báo cáo & Thống kê",
-    path: "/reports",
-    roles: ["manager", "admin"],
-  },
-  {
-    icon: HandCoins,
-    name: "Công nợ & Thu chi",
-    path: "/debts",
-    roles: ["manager", "admin"],
-  },
-  {
+    // Sheet: Chi_Phí
     icon: Wallet,
-    name: "Tài chính & Kế toán",
+    name: "Chi phí",
     path: "/finances",
-    roles: ["admin"],
+    roles: ["staff", "manager", "admin"],
   },
   {
     icon: Settings,
