@@ -50,6 +50,9 @@ export const getCustomerDebtDetail = async (req, res) => {
       UNION ALL
       SELECT id, 'payment' AS type, payment_number AS code, created_at AS date, amount, notes
       FROM customer_payments WHERE customer_id = $1
+      UNION ALL
+      SELECT id, 'return' AS type, return_number AS code, created_at AS date, total AS amount, notes
+      FROM customer_returns WHERE customer_id = $1
       ORDER BY date ASC
     `;
     const ledgerRes = await pool.query(ledgerQuery, [id]);
@@ -143,6 +146,149 @@ export const deleteCustomerPayment = async (req, res) => {
     if (result.rowCount === 0)
       return res.status(404).json({ message: "Phiếu thu không tồn tại" });
     res.status(200).json({ message: "Đã xóa phiếu thu" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Tạo phiếu trả hàng (khách trả lại sản phẩm) — giảm công nợ + hoàn tồn kho
+export const createCustomerReturn = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { items, discount, order_id, notes } = req.body;
+    const userId = req.user.id;
+
+    if (!items || items.length === 0)
+      return res.status(400).json({ message: "Chưa chọn sản phẩm trả lại" });
+
+    await client.query("BEGIN");
+
+    const customerRes = await client.query(
+      "SELECT id, name, phone, address FROM customers WHERE id = $1",
+      [id]
+    );
+    if (customerRes.rows.length === 0)
+      throw new Error("Khách hàng không tồn tại");
+
+    const subtotal = items.reduce(
+      (s, it) => s + Number(it.quantity) * Number(it.unit_price),
+      0
+    );
+    const finalDiscount = Number(discount) || 0;
+    const total = Math.max(0, subtotal - finalDiscount);
+    const returnNumber = `TH-${Date.now().toString().slice(-8)}`;
+
+    const returnRes = await client.query(
+      `INSERT INTO customer_returns
+       (return_number, customer_id, order_id, subtotal, discount, total, notes, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [
+        returnNumber,
+        id,
+        order_id || null,
+        subtotal,
+        finalDiscount,
+        total,
+        notes || null,
+        userId,
+      ]
+    );
+    const returnRow = returnRes.rows[0];
+
+    for (const it of items) {
+      await client.query(
+        `INSERT INTO customer_return_items
+         (return_id, product_id, product_name, product_sku, quantity, unit_price, total)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          returnRow.id,
+          it.product_id || null,
+          it.product_name,
+          it.product_sku || null,
+          it.quantity,
+          it.unit_price,
+          Number(it.quantity) * Number(it.unit_price),
+        ]
+      );
+      // Hàng trả lại -> cộng lại vào tồn kho
+      if (it.product_id) {
+        await client.query(
+          "UPDATE products SET stock_quantity = stock_quantity + $1, updated_at = NOW() WHERE id = $2",
+          [it.quantity, it.product_id]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({
+      ...returnRow,
+      items,
+      customer: customerRes.rows[0],
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ message: error.message });
+  } finally {
+    client.release();
+  }
+};
+
+// Xóa (hủy) phiếu trả hàng — trừ lại tồn kho đã cộng nhầm
+export const deleteCustomerReturn = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { returnId } = req.params;
+    await client.query("BEGIN");
+
+    const itemsRes = await client.query(
+      "SELECT product_id, quantity FROM customer_return_items WHERE return_id = $1",
+      [returnId]
+    );
+    for (const it of itemsRes.rows) {
+      if (it.product_id) {
+        await client.query(
+          "UPDATE products SET stock_quantity = stock_quantity - $1, updated_at = NOW() WHERE id = $2",
+          [it.quantity, it.product_id]
+        );
+      }
+    }
+
+    const result = await client.query(
+      "DELETE FROM customer_returns WHERE id = $1 RETURNING id",
+      [returnId]
+    );
+    if (result.rowCount === 0) throw new Error("Phiếu trả hàng không tồn tại");
+
+    await client.query("COMMIT");
+    res.status(200).json({ message: "Đã xóa phiếu trả hàng" });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ message: error.message });
+  } finally {
+    client.release();
+  }
+};
+
+// Lấy chi tiết 1 phiếu trả hàng (dùng để in lại)
+export const getCustomerReturnDetail = async (req, res) => {
+  try {
+    const { returnId } = req.params;
+    const returnRes = await pool.query(
+      `SELECT r.*, c.name AS customer_name, c.phone AS customer_phone, c.address AS customer_address
+       FROM customer_returns r JOIN customers c ON r.customer_id = c.id
+       WHERE r.id = $1`,
+      [returnId]
+    );
+    if (returnRes.rows.length === 0)
+      return res.status(404).json({ message: "Phiếu trả hàng không tồn tại" });
+
+    const itemsRes = await pool.query(
+      "SELECT * FROM customer_return_items WHERE return_id = $1",
+      [returnId]
+    );
+
+    res.status(200).json({ ...returnRes.rows[0], items: itemsRes.rows });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

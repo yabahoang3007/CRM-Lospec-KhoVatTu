@@ -4,6 +4,9 @@ import {
   getCustomerDebtDetail,
   createCustomerPayment,
   deleteCustomerPayment,
+  createCustomerReturn,
+  deleteCustomerReturn,
+  getCustomerReturnDetail,
   getSupplierDebts,
   getSupplierDebtDetail,
   createSupplierPayment,
@@ -28,6 +31,17 @@ debtRouter.delete(
   "/customers/payments/:paymentId",
   checkRole(["admin", "manager"]),
   deleteCustomerPayment
+);
+debtRouter.post(
+  "/customers/:id/returns",
+  checkRole(["admin", "manager"]),
+  createCustomerReturn
+);
+debtRouter.get("/customers/returns/:returnId", getCustomerReturnDetail);
+debtRouter.delete(
+  "/customers/returns/:returnId",
+  checkRole(["admin", "manager"]),
+  deleteCustomerReturn
 );
 
 // Công nợ nhà cung cấp

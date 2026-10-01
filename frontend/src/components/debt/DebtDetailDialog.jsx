@@ -24,9 +24,11 @@ import {
   HandCoins,
   Trash2,
   Receipt,
+  PackageMinus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PaymentFormDialog } from "./PaymentFormDialog";
+import { ReturnFormDialog } from "./ReturnFormDialog";
 import { ConfirmDeleteDialog } from "../ConfirmDeleteDialog";
 
 const formatCurrency = (val) =>
@@ -47,6 +49,7 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
@@ -75,23 +78,25 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
     if (onChanged) onChanged();
   };
 
-  const confirmDeletePayment = async () => {
+  const confirmDeleteRow = async () => {
     if (!rowToDelete) return;
     setIsDeleting(true);
     try {
-      await api.delete(`/debts/${type}s/payments/${rowToDelete.id}`);
+      const segment = rowToDelete.type === "return" ? "returns" : "payments";
+      await api.delete(`/debts/${type}s/${segment}/${rowToDelete.id}`);
       toast.success("Đã xóa phiếu");
       setDeleteOpen(false);
       handleChanged();
     } catch (error) {
-      console.error("Delete payment error:", error);
+      console.error("Delete row error:", error);
       toast.error(error.response?.data?.message || "Lỗi khi xóa phiếu");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Sổ chi tiết: cộng dồn số dư chạy từ nợ đầu kỳ
+  // Sổ chi tiết: cộng dồn số dư chạy từ nợ đầu kỳ (charge tăng nợ,
+  // payment/return đều giảm nợ)
   let running = Number(detail?.opening_balance) || 0;
   const ledgerRows = (detail?.ledger || []).map((row) => {
     running += row.type === "charge" ? Number(row.amount) : -Number(row.amount);
@@ -171,7 +176,17 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                {isCustomer && (
+                  <Button
+                    variant="outline"
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                    onClick={() => setReturnOpen(true)}
+                  >
+                    <PackageMinus className="h-4 w-4 mr-1" />
+                    Trả hàng
+                  </Button>
+                )}
                 <Button
                   variant="default"
                   className={isCustomer ? "" : "bg-blue-600 hover:bg-blue-700"}
@@ -212,6 +227,8 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
                               ? isCustomer
                                 ? "Hóa đơn bán hàng"
                                 : "Phiếu nhập hàng"
+                              : row.type === "return"
+                              ? "Phiếu trả hàng"
                               : isCustomer
                               ? "Phiếu thu"
                               : "Phiếu chi"}
@@ -219,7 +236,11 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
                         </TableCell>
                         <TableCell
                           className={`text-right font-medium ${
-                            row.type === "charge" ? "text-rose-600" : "text-emerald-600"
+                            row.type === "charge"
+                              ? "text-rose-600"
+                              : row.type === "return"
+                              ? "text-amber-600"
+                              : "text-emerald-600"
                           }`}
                         >
                           {row.type === "charge" ? "+" : "-"}
@@ -229,7 +250,7 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
                           {formatCurrency(row.runningBalance)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {row.type === "payment" && (
+                          {(row.type === "payment" || row.type === "return") && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -264,13 +285,26 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
         />
       )}
 
+      {detail && isCustomer && (
+        <ReturnFormDialog
+          open={returnOpen}
+          onOpenChange={setReturnOpen}
+          entity={detail}
+          onSuccess={handleChanged}
+        />
+      )}
+
       <ConfirmDeleteDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        onConfirm={confirmDeletePayment}
-        title={isCustomer ? "Xóa phiếu thu?" : "Xóa phiếu chi?"}
+        onConfirm={confirmDeleteRow}
+        title={rowToDelete?.type === "return" ? "Xóa phiếu trả hàng?" : isCustomer ? "Xóa phiếu thu?" : "Xóa phiếu chi?"}
         itemName={rowToDelete?.code}
-        description="Công nợ sẽ được tính lại sau khi xóa phiếu này. Hành động này không thể hoàn tác."
+        description={
+          rowToDelete?.type === "return"
+            ? "Tồn kho đã cộng lại sẽ bị trừ đi tương ứng. Công nợ được tính lại. Hành động này không thể hoàn tác."
+            : "Công nợ sẽ được tính lại sau khi xóa phiếu này. Hành động này không thể hoàn tác."
+        }
         loading={isDeleting}
       />
     </>
