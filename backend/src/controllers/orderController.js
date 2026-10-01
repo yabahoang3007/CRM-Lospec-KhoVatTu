@@ -47,7 +47,8 @@ export const getOrderDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const orderQuery = `
-      SELECT o.*, c.name as customer_name, c.phone as customer_phone, u.full_name as staff_name
+      SELECT o.*, c.name as customer_name, c.phone as customer_phone,
+        c.address as customer_address, u.full_name as staff_name
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN users u ON o.user_id = u.id

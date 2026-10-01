@@ -48,26 +48,12 @@ export function POSOrderHistory() {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  const [settings, setSettings] = useState({
-    store_name: "KINGSHEET CRM",
-    store_address: "",
-    store_phone: "",
-    store_email: "",
-    tax_rate: 0,
-  });
+  const [settings, setSettings] = useState({ store_name: "KINGSHEET CRM" });
 
   const fetchSettings = async () => {
     try {
       const { data } = await api.get("/settings");
-      if (data) {
-        setSettings({
-          store_name: data.store_name || "KINGSHEET CRM",
-          store_address: data.store_address || "",
-          store_phone: data.store_phone || "",
-          store_email: data.store_email || "",
-          tax_rate: Number(data.tax_rate) || 10,
-        });
-      }
+      if (data) setSettings(data);
     } catch (error) {
       console.error("Lỗi tải cài đặt:", error);
     }
@@ -130,15 +116,39 @@ export function POSOrderHistory() {
     );
   };
 
-  const handlePrintReceipt = () => {
+  const handlePrintReceipt = async () => {
+    let balanceBefore = null;
+    let balanceAfter = null;
+
+    // In lại đơn cũ: chỉ ước tính công nợ cũ/còn lại nếu đơn còn đang
+    // "chưa thu" (unpaid) — đơn đã thu đủ thì không cần hiển thị dòng này.
+    if (selectedOrder.customer_id && selectedOrder.payment_status === "unpaid") {
+      try {
+        const { data } = await api.get(
+          `/debts/customers/${selectedOrder.customer_id}`
+        );
+        balanceAfter = Number(data.balance) || 0;
+        balanceBefore = balanceAfter - Number(selectedOrder.total || 0);
+      } catch (error) {
+        console.error("Lỗi tải công nợ khách hàng:", error);
+      }
+    }
+
     printReceipt({
       order: selectedOrder,
       items: selectedOrder.items,
-      settings: settings,
+      settings,
+      customer: {
+        name: selectedOrder.customer_name,
+        phone: selectedOrder.customer_phone,
+        address: selectedOrder.customer_address,
+      },
       customerName: selectedOrder.customer_name || "Khách lẻ",
       paymentInfo: {
         method: selectedOrder.payment_method,
       },
+      balanceBefore,
+      balanceAfter,
     });
   };
 

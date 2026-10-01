@@ -74,6 +74,8 @@ export function POSView() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [lastOrderItems, setLastOrderItems] = useState([]);
+  const [lastOrderCustomer, setLastOrderCustomer] = useState(null);
+  const [lastOrderWasCredit, setLastOrderWasCredit] = useState(false);
 
   const selectedBranch = "Kho Tổng";
 
@@ -84,24 +86,13 @@ export function POSView() {
 
   const [settings, setSettings] = useState({
     store_name: "KINGSHEET CRM",
-    store_address: "",
-    store_phone: "",
-    store_email: "",
     tax_rate: 0,
   });
 
   const fetchSettings = async () => {
     try {
       const { data } = await api.get("/settings");
-      if (data) {
-        setSettings({
-          store_name: data.store_name || "KINGSHEET CRM",
-          store_address: data.store_address || "",
-          store_phone: data.store_phone || "",
-          store_email: data.store_email || "",
-          tax_rate: Number(data.tax_rate) || 10,
-        });
-      }
+      if (data) setSettings(data);
     } catch (error) {
       console.error("Lỗi tải cài đặt:", error);
     }
@@ -275,17 +266,37 @@ export function POSView() {
   };
 
   // --- HÀM IN HÓA ĐƠN ---
-  const handlePrintReceipt = () => {
+  const handlePrintReceipt = async () => {
+    let balanceBefore = null;
+    let balanceAfter = null;
+
+    // Chỉ cần hiển thị công nợ cũ/còn lại khi đơn có gắn khách hàng VÀ
+    // là bán chịu (ảnh hưởng công nợ) — đơn thanh toán đủ không cần dòng này.
+    if (lastOrderCustomer?.id && lastOrderWasCredit) {
+      try {
+        const { data } = await api.get(
+          `/debts/customers/${lastOrderCustomer.id}`
+        );
+        balanceAfter = Number(data.balance) || 0;
+        balanceBefore = balanceAfter - Number(lastOrder?.total || 0);
+      } catch (error) {
+        console.error("Lỗi tải công nợ khách hàng:", error);
+      }
+    }
+
     printReceipt({
       order: lastOrder,
       items: lastOrderItems,
-      settings: settings,
-      customerName: selectedCustomer?.name || "Khách lẻ",
+      settings,
+      customer: lastOrderCustomer,
+      customerName: lastOrderCustomer?.name || "Khách lẻ",
       paymentInfo: {
         method: paymentMethod,
         receivedAmount: receivedAmount,
         changeAmount: changeAmount,
       },
+      balanceBefore,
+      balanceAfter,
     });
   };
 
@@ -318,6 +329,8 @@ export function POSView() {
 
       setLastOrder(data.order);
       setLastOrderItems([...cart]);
+      setLastOrderCustomer(selectedCustomer);
+      setLastOrderWasCredit(isCreditSale);
 
       toast.success(
         isCreditSale ? "Đã ghi nợ đơn hàng cho khách" : "Thanh toán thành công!"

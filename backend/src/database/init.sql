@@ -11,17 +11,22 @@ RETURN NEW;
 END;
 $$;
 
--- Function: Tự động sinh mã đơn hàng (ORD-YYYYMMDD-XXXXX)
+-- Function: Tự động sinh mã đơn hàng (HD000001, HD000002...) — khớp đúng
+-- quy ước đánh số hoá đơn bán hàng thật của cửa hàng (vd HD012600,
+-- HD015614 trong dữ liệu lịch sử nhập từ Excel). Lấy số lớn nhất hiện có
+-- trong các mã dạng HDxxxxxx rồi +1, để nối tiếp liền mạch với lịch sử,
+-- không phụ thuộc COUNT(*) (sai lệch nếu có đơn không theo mẫu HD).
 CREATE OR REPLACE FUNCTION generate_order_number() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 DECLARE
-  next_number INTEGER;
-  new_order_number VARCHAR(50);
+  next_number BIGINT;
 BEGIN
-  SELECT count(*) + 1 INTO next_number FROM orders;
-  new_order_number := 'ORD-' || TO_CHAR(CURRENT_DATE,'YYYYMMDD') || '-' || LPAD(next_number::TEXT, 5, '0');
-  NEW.order_number := new_order_number;
+  SELECT COALESCE(MAX((substring(order_number from 3))::bigint), 0) + 1
+    INTO next_number
+    FROM orders
+    WHERE order_number ~ '^HD[0-9]+$';
+  NEW.order_number := 'HD' || LPAD(next_number::TEXT, 6, '0');
   RETURN NEW;
 END;
 $$;
