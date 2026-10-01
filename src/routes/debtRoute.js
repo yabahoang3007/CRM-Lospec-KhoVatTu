@@ -7,6 +7,7 @@ import {
   createCustomerReturn,
   deleteCustomerReturn,
   getCustomerReturnDetail,
+  getAllCustomerReturns,
   getSupplierDebts,
   getSupplierDebtDetail,
   createSupplierPayment,
@@ -20,6 +21,7 @@ const debtRouter = express.Router();
 debtRouter.use(authMiddleware);
 
 // Công nợ khách hàng
+debtRouter.get("/returns", getAllCustomerReturns);
 debtRouter.get("/customers", getCustomerDebts);
 debtRouter.get("/customers/:id", getCustomerDebtDetail);
 debtRouter.post(

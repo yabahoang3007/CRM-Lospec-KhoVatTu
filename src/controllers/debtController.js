@@ -270,6 +270,37 @@ export const deleteCustomerReturn = async (req, res) => {
   }
 };
 
+// Danh sách TOÀN BỘ phiếu trả hàng (của mọi khách hàng) — dùng cho trang
+// lịch sử trả hàng, khác với sổ công nợ (xem theo từng khách)
+export const getAllCustomerReturns = async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    let query = `
+      SELECT r.*, c.name AS customer_name, c.phone AS customer_phone,
+        (SELECT COALESCE(SUM(quantity), 0) FROM customer_return_items WHERE return_id = r.id) AS total_quantity
+      FROM customer_returns r
+      JOIN customers c ON r.customer_id = c.id
+      WHERE 1=1
+    `;
+    const params = [];
+    let idx = 1;
+
+    if (search) {
+      query += ` AND (c.name ILIKE $${idx} OR r.return_number ILIKE $${idx})`;
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    query += ` ORDER BY r.created_at DESC`;
+
+    const result = await pool.query(query, params);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Lấy chi tiết 1 phiếu trả hàng (dùng để in lại)
 export const getCustomerReturnDetail = async (req, res) => {
   try {
