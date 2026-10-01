@@ -177,7 +177,11 @@ export const createCustomerReturn = async (req, res) => {
     );
     const finalDiscount = Number(discount) || 0;
     const total = Math.max(0, subtotal - finalDiscount);
-    const returnNumber = `TH-${Date.now().toString().slice(-8)}`;
+    // Số phiếu dạng TH000001, TH000002... khớp quy ước đánh số của cửa hàng
+    const countRes = await client.query(
+      "SELECT COUNT(*) + 1 AS next FROM customer_returns"
+    );
+    const returnNumber = `TH${String(countRes.rows[0].next).padStart(6, "0")}`;
 
     const returnRes = await client.query(
       `INSERT INTO customer_returns
