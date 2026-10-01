@@ -38,6 +38,8 @@ export default function SettingPage() {
 
   const [formData, setFormData] = useState({
     store_name: "",
+    store_subname: "",
+    store_tagline: "",
     store_phone: "",
     store_email: "",
     store_address: "",
@@ -45,6 +47,10 @@ export default function SettingPage() {
     bank_name: "",
     bank_account_no: "",
     bank_owner: "",
+    bank_name_2: "",
+    bank_account_no_2: "",
+    bank_owner_2: "",
+    seller_name: "",
   });
 
   useEffect(() => {
@@ -57,6 +63,8 @@ export default function SettingPage() {
       const { data } = await api.get("/settings");
       setFormData({
         store_name: data.store_name || "",
+        store_subname: data.store_subname || "",
+        store_tagline: data.store_tagline || "",
         store_phone: data.store_phone || "",
         store_email: data.store_email || "",
         store_address: data.store_address || "",
@@ -64,6 +72,10 @@ export default function SettingPage() {
         bank_name: data.bank_name || "",
         bank_account_no: data.bank_account_no || "",
         bank_owner: data.bank_owner || "",
+        bank_name_2: data.bank_name_2 || "",
+        bank_account_no_2: data.bank_account_no_2 || "",
+        bank_owner_2: data.bank_owner_2 || "",
+        seller_name: data.seller_name || "",
       });
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -248,6 +260,37 @@ export default function SettingPage() {
                   rows={3}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <Label>Tên gian hàng/kho phụ (cột phải khi in phiếu)</Label>
+                  <Input
+                    name="store_subname"
+                    value={formData.store_subname}
+                    onChange={handleChange}
+                    placeholder="VD: KHO VẬT TƯ PHỤ KIỆN NGÀNH MỘC"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tên người bán (ký tên khi in phiếu)</Label>
+                  <Input
+                    name="seller_name"
+                    value={formData.seller_name}
+                    onChange={handleChange}
+                    placeholder="VD: Nguyễn Thị May"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Mô tả mặt hàng (cột phải khi in phiếu, xuống dòng bằng Enter)</Label>
+                  <Textarea
+                    name="store_tagline"
+                    value={formData.store_tagline}
+                    onChange={handleChange}
+                    placeholder={"VD: PHỤ KIỆN NHÀ BẾP THÔNG MINH FULCO - EUROGOLD, HAFELE, BLUM...\nBẢN LỀ, RAY, LED, KEO, ĐINH... VẬT TƯ CÁC LOẠI..."}
+                    rows={2}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -312,6 +355,42 @@ export default function SettingPage() {
                     <Input
                       name="bank_owner"
                       value={formData.bank_owner}
+                      onChange={handleChange}
+                      placeholder="NGUYEN VAN A"
+                      className="uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="font-medium text-gray-800">
+                  Tài khoản ngân hàng thứ 2 (tuỳ chọn)
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tên ngân hàng</Label>
+                    <Input
+                      name="bank_name_2"
+                      value={formData.bank_name_2}
+                      onChange={handleChange}
+                      placeholder="VD: VIB"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Số tài khoản</Label>
+                    <Input
+                      name="bank_account_no_2"
+                      value={formData.bank_account_no_2}
+                      onChange={handleChange}
+                      placeholder="VD: 388117181"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Tên chủ tài khoản</Label>
+                    <Input
+                      name="bank_owner_2"
+                      value={formData.bank_owner_2}
                       onChange={handleChange}
                       placeholder="NGUYEN VAN A"
                       className="uppercase"

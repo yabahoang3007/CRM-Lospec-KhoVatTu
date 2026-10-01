@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { docSoThanhChu } from "../debt/ReturnReceiptPrinter";
+import { docSoThanhChu, buildPrintHeader } from "../debt/ReturnReceiptPrinter";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
@@ -77,13 +77,7 @@ export const printImportReceipt = ({ po, items = [], settings = {} }) => {
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="col">
-            <b>${settings.store_name || "CỬA HÀNG"}</b><br/>
-            ${settings.store_address ? `Địa chỉ: ${settings.store_address}<br/>` : ""}
-            ${settings.store_phone ? `Điện thoại/Zalo: ${settings.store_phone}` : ""}
-          </div>
-        </div>
+        ${buildPrintHeader(settings)}
 
         <h1>PHIẾU NHẬP HÀNG</h1>
         <div class="meta">

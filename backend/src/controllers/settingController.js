@@ -20,6 +20,8 @@ export const updateSettings = async (req, res) => {
   try {
     const {
       store_name,
+      store_subname,
+      store_tagline,
       store_address,
       store_phone,
       store_email,
@@ -27,6 +29,10 @@ export const updateSettings = async (req, res) => {
       bank_account_no,
       bank_name,
       bank_owner,
+      bank_account_no_2,
+      bank_name_2,
+      bank_owner_2,
+      seller_name,
     } = req.body;
 
     const query = `
@@ -39,6 +45,12 @@ export const updateSettings = async (req, res) => {
           bank_account_no = $6,
           bank_name = $7,
           bank_owner = $8,
+          store_subname = $9,
+          store_tagline = $10,
+          bank_account_no_2 = $11,
+          bank_name_2 = $12,
+          bank_owner_2 = $13,
+          seller_name = $14,
           updated_at = NOW()
       WHERE id = 1
       RETURNING *
@@ -53,6 +65,12 @@ export const updateSettings = async (req, res) => {
       bank_account_no,
       bank_name,
       bank_owner,
+      store_subname || null,
+      store_tagline || null,
+      bank_account_no_2 || null,
+      bank_name_2 || null,
+      bank_owner_2 || null,
+      seller_name || null,
     ]);
 
     res.json({ message: "Cập nhật thành công", settings: result.rows[0] });

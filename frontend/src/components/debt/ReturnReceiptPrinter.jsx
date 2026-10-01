@@ -64,6 +64,45 @@ const formatDate = (date) =>
       })
     : "";
 
+// "Ngày 17 tháng 08 năm 2026" — dùng cho dòng ký tên
+const formatDateLong = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `Ngày ${dd} tháng ${mm} năm ${d.getFullYear()}`;
+};
+
+// Khối tiêu đề in 2 cột: trái = tên cửa hàng + địa chỉ/SĐT + tài khoản ngân
+// hàng; phải = tên gian hàng phụ + mô tả mặt hàng. Dùng chung cho mọi phiếu in.
+export const buildPrintHeader = (settings = {}) => `
+  <div class="header">
+    <div class="col">
+      <b>${(settings.store_name || "CỬA HÀNG").toUpperCase()}</b><br/>
+      ${settings.store_address ? `Địa chỉ: ${settings.store_address}<br/>` : ""}
+      ${settings.store_phone ? `Điện thoại/Zalo: ${settings.store_phone}<br/>` : ""}
+      ${
+        settings.bank_account_no
+          ? `STK: ${settings.bank_account_no}${
+              settings.bank_name ? " - " + settings.bank_name : ""
+            }${settings.bank_owner ? " - " + settings.bank_owner : ""}<br/>`
+          : ""
+      }
+      ${
+        settings.bank_account_no_2
+          ? `STK: ${settings.bank_name_2 ? settings.bank_name_2 + " - " : ""}${
+              settings.bank_account_no_2
+            }${settings.bank_owner_2 ? " - " + settings.bank_owner_2 : ""}<br/>`
+          : ""
+      }
+    </div>
+    <div class="col" style="text-align:right">
+      ${settings.store_subname ? `<b>${settings.store_subname}</b><br/>` : ""}
+      ${(settings.store_tagline || "").split("\n").filter(Boolean).map((l) => `${l}<br/>`).join("")}
+    </div>
+  </div>
+`;
+
 /**
  * In hoá đơn trả hàng — đúng mẫu "HÓA ĐƠN TRẢ HÀNG" của cửa hàng.
  * @param {Object} params
@@ -126,16 +165,7 @@ export const printReturnReceipt = ({
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="col">
-            <b>${settings.store_name || "CỬA HÀNG"}</b><br/>
-            ${settings.store_address ? `Địa chỉ: ${settings.store_address}<br/>` : ""}
-            ${settings.store_phone ? `Điện thoại/Zalo: ${settings.store_phone}` : ""}
-          </div>
-          <div class="col" style="text-align:right">
-            ${settings.store_slogan || ""}
-          </div>
-        </div>
+        ${buildPrintHeader(settings)}
 
         <h1>HÓA ĐƠN TRẢ HÀNG</h1>
         <div class="meta">
@@ -198,9 +228,10 @@ export const printReturnReceipt = ({
             <div class="space"></div>
           </div>
           <div class="col">
-            Ngày ${formatDate(returnDoc.created_at)}<br/>
+            ${formatDateLong(returnDoc.created_at)}<br/>
             <b>Người bán hàng</b>
             <div class="space"></div>
+            ${settings.seller_name ? `<i>${settings.seller_name}</i>` : ""}
           </div>
         </div>
 

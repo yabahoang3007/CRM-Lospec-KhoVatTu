@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS app_settings (
     id integer DEFAULT 1 PRIMARY KEY CHECK (id = 1),
     store_name character varying(255) DEFAULT 'LOSPEC',
+    store_subname character varying(255), -- tên nhãn hàng/kho thứ 2 (cột phải tiêu đề in)
+    store_tagline text, -- dòng mô tả mặt hàng dưới store_subname (cột phải tiêu đề in)
     store_address text,
     store_phone character varying(50),
     store_email character varying(100),
@@ -76,6 +78,10 @@ CREATE TABLE IF NOT EXISTS app_settings (
     bank_account_no character varying(50),
     bank_name character varying(100),
     bank_owner character varying(100),
+    bank_account_no_2 character varying(50), -- số tài khoản ngân hàng thứ 2 (nếu có)
+    bank_name_2 character varying(100),
+    bank_owner_2 character varying(100),
+    seller_name character varying(100), -- tên hiển thị dưới "Người bán hàng" khi in phiếu
     qr_code_url text,
     updated_at timestamp with time zone DEFAULT now()
 );
