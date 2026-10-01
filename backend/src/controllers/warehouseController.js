@@ -22,7 +22,8 @@ export const getImportDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const poQuery = `
-      SELECT po.*, s.name as supplier_name, u.full_name as created_by
+      SELECT po.*, s.name as supplier_name, s.phone as supplier_phone,
+        s.address as supplier_address, u.full_name as created_by
       FROM purchase_orders po
       LEFT JOIN suppliers s ON po.supplier_id = s.id
       LEFT JOIN users u ON po.user_id = u.id
@@ -33,6 +34,16 @@ export const getImportDetail = async (req, res) => {
     if (poResult.rows.length === 0)
       return res.status(404).json({ message: "Phiếu không tồn tại" });
 
+    // Công nợ hiện tại của NCC (để hiển thị công nợ cũ/còn lại khi in phiếu)
+    let supplierBalance = 0;
+    if (poResult.rows[0].supplier_id) {
+      const balRes = await pool.query(
+        "SELECT balance FROM view_supplier_debts WHERE id = $1",
+        [poResult.rows[0].supplier_id]
+      );
+      supplierBalance = balRes.rows[0]?.balance || 0;
+    }
+
     const itemsQuery = `
       SELECT wt.*, p.name as product_name, p.sku
       FROM warehouse_transactions wt
@@ -41,7 +52,11 @@ export const getImportDetail = async (req, res) => {
     `;
     const itemsResult = await pool.query(itemsQuery, [id]);
 
-    res.status(200).json({ ...poResult.rows[0], items: itemsResult.rows });
+    res.status(200).json({
+      ...poResult.rows[0],
+      supplier_balance: supplierBalance,
+      items: itemsResult.rows,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

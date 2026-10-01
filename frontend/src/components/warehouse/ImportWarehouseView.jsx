@@ -9,12 +9,14 @@ import {
   Search,
   CheckCircle,
   Trash2,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { WarehouseTransactionDialog } from "./WarehouseTransactionDialog";
 import { WarehouseDetailDialog } from "./WarehouseDetailDialog";
 import { WarehouseTable } from "./WarehouseTable";
 import { ConfirmActionDialog } from "../ConfirmActionDialog";
+import { printImportReceipt } from "./ImportReceiptPrinter";
 
 export function ImportWarehouseView() {
   const [invoices, setInvoices] = useState([]);
@@ -59,6 +61,16 @@ export function ImportWarehouseView() {
       toast.error("Không thể tải dữ liệu kho");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!selectedInvoice) return;
+    try {
+      const { data: settings } = await api.get("/settings");
+      printImportReceipt({ po: selectedInvoice, items: selectedInvoice.items, settings });
+    } catch (error) {
+      toast.error("Không thể in phiếu lúc này");
     }
   };
 
@@ -189,21 +201,16 @@ export function ImportWarehouseView() {
         data={selectedInvoice}
         type="import"
         footerAction={
-          // Chỉ hiện nút thao tác nếu trạng thái chưa hoàn thành (pending)
-          selectedInvoice?.status !== "received" ? (
-            //  Nút Xóa trong Dialog Chi tiết
-            // <Button
-            //   variant="destructive"
-            //   onClick={handleDeleteFromDetail}
-            //   className="gap-2"
-            // >
-            //   <Trash2 className="h-4 w-4" /> Xóa phiếu
-            // </Button>
-
-            <Button onClick={handleOpenApprove} variant="default">
-              <CheckCircle className="h-4 w-4" /> Duyệt & Nhập kho
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="h-4 w-4" /> In phiếu
             </Button>
-          ) : null
+            {selectedInvoice?.status !== "received" && (
+              <Button onClick={handleOpenApprove} variant="default">
+                <CheckCircle className="h-4 w-4" /> Duyệt & Nhập kho
+              </Button>
+            )}
+          </div>
         }
       />
 
