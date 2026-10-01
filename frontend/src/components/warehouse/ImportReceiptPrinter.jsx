@@ -124,7 +124,7 @@ export const printImportReceipt = ({ po, items = [], settings = {} }) => {
           <tr class="sum"><td class="label">Công nợ còn phải trả</td><td class="value">${formatCurrency(balanceAfter)}</td></tr>
         </table>
 
-        <div class="bang-chu"><b>Bằng chữ:</b> ${docSoThanhChu(po.total)}</div>
+        <div class="bang-chu"><b>Bằng chữ:</b> ${docSoThanhChu(balanceAfter)}</div>
 
         <div class="signatures">
           <div class="col">

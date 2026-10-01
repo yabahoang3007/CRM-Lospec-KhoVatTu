@@ -176,7 +176,11 @@ export const createCustomerReturn = async (req, res) => {
       0
     );
     const finalDiscount = Number(discount) || 0;
-    const total = Math.max(0, subtotal - finalDiscount);
+    if (finalDiscount > subtotal)
+      throw new Error(
+        "Chiết khấu hoá đơn không được lớn hơn tổng tiền hàng trả lại"
+      );
+    const total = subtotal - finalDiscount;
     // Số phiếu dạng TH000001, TH000002... khớp quy ước đánh số của cửa hàng
     const countRes = await client.query(
       "SELECT COUNT(*) + 1 AS next FROM customer_returns"

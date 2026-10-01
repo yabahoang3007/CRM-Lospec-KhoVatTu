@@ -219,7 +219,7 @@ export const printReturnReceipt = ({
           <tr class="sum"><td class="label">Công nợ còn lại</td><td class="value">${formatCurrency(balanceAfter)}</td></tr>
         </table>
 
-        <div class="bang-chu"><b>Bằng chữ:</b> ${docSoThanhChu(returnDoc.total)}</div>
+        <div class="bang-chu"><b>Bằng chữ:</b> ${docSoThanhChu(balanceAfter)}</div>
 
         <div class="signatures">
           <div class="col">

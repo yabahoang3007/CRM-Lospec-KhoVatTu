@@ -116,6 +116,10 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
     if (items.length === 0) return toast.error("Chưa chọn sản phẩm trả lại");
     if (items.some((it) => !it.quantity || Number(it.quantity) <= 0))
       return toast.error("Số lượng trả phải lớn hơn 0");
+    if ((Number(discount) || 0) > subtotal)
+      return toast.error(
+        "Chiết khấu hoá đơn không được lớn hơn tổng tiền hàng trả lại"
+      );
 
     setLoading(true);
     try {
