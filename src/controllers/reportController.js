@@ -129,22 +129,28 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
-// 2. Dữ liệu biểu đồ (SỬA LẠI CÚ PHÁP TIMEZONE)
+// 2. Dữ liệu biểu đồ
 export const getRevenueChart = async (req, res) => {
   try {
     const { days = 7, startDate, endDate } = req.query;
 
-    let dateFilter = "";
-    let params = [];
+    // QUAN TRỌNG: chuỗi ngày (generate_series) phải sinh ra ĐÚNG khoảng do
+    // người dùng chọn (startDate/endDate), không phải lúc nào cũng "30 ngày
+    // gần nhất tính từ hôm nay" rồi mới lọc lại — trước đây lọc theo WHERE
+    // sau khi generate_series đã cố định 30 ngày gần nhất, nên chọn khoảng
+    // ngày nằm ngoài 30 ngày đó (vd dữ liệu cũ) luôn ra rỗng dù có dữ liệu.
+    let seriesStartExpr, seriesEndExpr;
+    const params = [];
 
     if (startDate && endDate) {
-      dateFilter = `date_series >= $1 AND date_series <= $2`;
-      params = [startDate, endDate];
+      seriesStartExpr = "$1::date";
+      seriesEndExpr = "$2::date";
+      params.push(startDate, endDate);
     } else {
-      // Lấy n ngày gần nhất tính đến "Hôm nay VN"
-      dateFilter = `date_series >= (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - interval '${
+      seriesStartExpr = `(now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - interval '${
         Number(days) - 1
       } days'`;
+      seriesEndExpr = `(now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date`;
     }
 
     const query = `
@@ -152,15 +158,9 @@ export const getRevenueChart = async (req, res) => {
         to_char(date_series, 'DD/MM') as name,
         COALESCE(SUM(o.total), 0) as revenue,
         COUNT(o.id) as total_orders
-      FROM generate_series(
-        -- Tạo chuỗi ngày theo giờ VN
-        (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - interval '30 days',
-        (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date,
-        '1 day'
-      ) as date_series
+      FROM generate_series(${seriesStartExpr}, ${seriesEndExpr}, '1 day') as date_series
       LEFT JOIN orders o ON date(o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') = date_series
         AND o.status = 'completed'
-      WHERE ${dateFilter}
       GROUP BY date_series
       ORDER BY date_series ASC
     `;
