@@ -58,10 +58,10 @@ export function TopBar({ sidebarOpen, setSidebarOpen }) {
           </div>
           <div className="hidden md:block">
             <h1 className="text-xl font-bold text-gray-50 leading-none">
-              LOSPEC
+              KINGSHEET
             </h1>
             <p className="text-[11px] text-gray-200 font-medium tracking-widest">
-              POS SYSTEM
+              CRM SYSTEM
             </p>
           </div>
         </div>

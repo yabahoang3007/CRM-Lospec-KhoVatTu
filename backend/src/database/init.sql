@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Table: App Settings
 CREATE TABLE IF NOT EXISTS app_settings (
     id integer DEFAULT 1 PRIMARY KEY CHECK (id = 1),
-    store_name character varying(255) DEFAULT 'LOSPEC',
+    store_name character varying(255) DEFAULT 'Kingsheet CRM',
     store_subname character varying(255), -- tên nhãn hàng/kho thứ 2 (cột phải tiêu đề in)
     store_tagline text, -- dòng mô tả mặt hàng dưới store_subname (cột phải tiêu đề in)
     store_address text,
@@ -443,12 +443,12 @@ CREATE TRIGGER auto_generate_order_number BEFORE INSERT ON orders FOR EACH ROW W
 
 -- Seed App Settings
 INSERT INTO app_settings (id, store_name, tax_rate, currency)
-VALUES (1, 'LOSPEC STORE', 0, 'VND')
+VALUES (1, 'Kingsheet CRM', 0, 'VND')
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Admin User (Password: admin123)
 -- Hash này tương ứng với 'admin123'
 INSERT INTO users (id, email, password, full_name, role, is_active)
 VALUES
-('5b897853-7e2c-472b-8bd9-bba6abdedcfa', 'admin@lospec.com', '$2b$10$I2rkP6YyA9zP5SQj8PpFwOde/LsLpw3HwT44lDL0SaZefRfaiJUkq', 'Administrator', 'admin', true)
+('5b897853-7e2c-472b-8bd9-bba6abdedcfa', 'admin@kingsheet.com', '$2b$10$I2rkP6YyA9zP5SQj8PpFwOde/LsLpw3HwT44lDL0SaZefRfaiJUkq', 'Administrator', 'admin', true)
 ON CONFLICT (email) DO NOTHING;

@@ -78,7 +78,7 @@ export const printDebtReceipt = ({
       <body>
         <div class="text-center header">
           <h2 style="margin: 0; font-size: 16px; text-transform: uppercase;">
-            ${settings.store_name || "LOSPEC"}
+            ${settings.store_name || "KINGSHEET CRM"}
           </h2>
           ${
             settings.store_phone
@@ -136,7 +136,7 @@ export const printDebtReceipt = ({
 
         <div class="text-center">
           <p style="font-style: italic; margin-top: 10px;">Cảm ơn quý khách!</p>
-          <p style="font-size: 10px;">Powered by LOSPEC POS</p>
+          <p style="font-size: 10px;">Powered by Kingsheet CRM</p>
         </div>
       </body>
     </html>

@@ -102,7 +102,7 @@ const Login = () => {
             <Package className="h-12 w-12 text-white" />
           </div>
           <h1 className="text-2xl font-semibold text-gray-900">
-            Lospec - Đặc sản quê hương
+            Kingsheet CRM
           </h1>
           <p className="text-base text-gray-500 mt-1">
             Hệ thống quản lý bán hàng & CRM thông minh
@@ -219,7 +219,7 @@ const Login = () => {
           </form>
 
           <div className="mt-4 text-center text-xs text-gray-400">
-            © 2025 Lospec CRM. All rights reserved.
+            © 2026 Kingsheet CRM. All rights reserved.
           </div>
         </div>
       </div>

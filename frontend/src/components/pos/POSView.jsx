@@ -83,7 +83,7 @@ export function POSView() {
   }, []);
 
   const [settings, setSettings] = useState({
-    store_name: "LOSPEC",
+    store_name: "KINGSHEET CRM",
     store_address: "",
     store_phone: "",
     store_email: "",
@@ -95,7 +95,7 @@ export function POSView() {
       const { data } = await api.get("/settings");
       if (data) {
         setSettings({
-          store_name: data.store_name || "LOSPEC",
+          store_name: data.store_name || "KINGSHEET CRM",
           store_address: data.store_address || "",
           store_phone: data.store_phone || "",
           store_email: data.store_email || "",
