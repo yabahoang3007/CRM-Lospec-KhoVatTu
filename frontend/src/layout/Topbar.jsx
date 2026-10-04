@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { QuickSearch } from "@/components/layout/QuickSearch";
 import {
   LogOut,
   User,
@@ -66,6 +67,9 @@ export function TopBar({ sidebarOpen, setSidebarOpen }) {
           </div>
         </div>
       </div>
+
+      {/* --- CENTER: TRA CỨU NHANH --- */}
+      <QuickSearch />
 
       {/* --- RIGHT: USER PROFILE --- */}
       <div className="flex items-center gap-4">
