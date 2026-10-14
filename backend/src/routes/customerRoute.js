@@ -4,7 +4,8 @@ import {
   getCustomerById,
   createCustomer,
   updateCustomer,
-  deleteCustomer
+  deleteCustomer,
+  exportCustomers
 } from "../controllers/customerController.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { checkRole } from "../middleware/role.js";
@@ -14,6 +15,7 @@ const customerRouter = express.Router();
 customerRouter.use(authMiddleware);
 
 customerRouter.get("/", getAllCustomers);
+customerRouter.get("/export", exportCustomers);
 customerRouter.get("/:id", getCustomerById);
 customerRouter.post("/", createCustomer);
 customerRouter.put("/:id", updateCustomer);

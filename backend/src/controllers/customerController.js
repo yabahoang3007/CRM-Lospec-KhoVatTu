@@ -1,4 +1,48 @@
 import { pool } from "../config/database.js";
+import { csvRow } from "../utils/csv.js";
+
+// Xuất toàn bộ danh sách khách hàng ra file Excel (CSV), kèm công nợ hiện tại
+export const exportCustomers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT v.name, v.phone, v.address, c.customer_type, c.total_spent, c.total_orders, v.balance
+       FROM view_customer_debts v
+       JOIN customers c ON c.id = v.id
+       ORDER BY v.name`
+    );
+
+    let csv = "﻿";
+    csv += csvRow([
+      "Tên khách hàng",
+      "Số điện thoại",
+      "Địa chỉ",
+      "Loại khách hàng",
+      "Tổng chi tiêu",
+      "Tổng số đơn",
+      "Công nợ hiện tại",
+    ]);
+    result.rows.forEach((c) => {
+      csv += csvRow([
+        c.name,
+        c.phone,
+        c.address,
+        c.customer_type,
+        c.total_spent,
+        c.total_orders,
+        c.balance,
+      ]);
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=DanhSachKhachHang_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // Lấy danh sách khách hàng
 export const getAllCustomers = async (req, res) => {

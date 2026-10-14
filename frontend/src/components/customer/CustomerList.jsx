@@ -40,6 +40,8 @@ import {
   Award,
   Loader2,
   MapPin,
+  Download,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerFormDialog } from "./CustomerFormDialog";
@@ -60,10 +62,36 @@ export function CustomerList() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
   }, [search, tierFilter]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const response = await api.get("/customers/export", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `DanhSachKhachHang_${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Đã xuất danh sách khách hàng!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi xuất file");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Helpers Map
   const mapTypeToTier = (type) => {
@@ -200,15 +228,25 @@ export function CustomerList() {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          onClick={() => {
-            setEditingCustomer(null);
-            setShowFormDialog(true);
-          }}
-          variant="default"
-        >
-          <UserPlus className="h-4 w-4 mr-2" /> Thêm khách hàng
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            Xuất Excel
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingCustomer(null);
+              setShowFormDialog(true);
+            }}
+            variant="default"
+          >
+            <UserPlus className="h-4 w-4 mr-2" /> Thêm khách hàng
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

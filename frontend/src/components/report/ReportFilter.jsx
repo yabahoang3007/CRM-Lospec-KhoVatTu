@@ -22,12 +22,18 @@ export function ReportFilter({
     const end = new Date();
     const start = new Date();
 
-    if (value === "7days") {
+    if (value === "thisWeek") {
+      const day = start.getDay(); // 0 = Chủ nhật
+      const diffToMonday = day === 0 ? 6 : day - 1;
+      start.setDate(start.getDate() - diffToMonday);
+    } else if (value === "7days") {
       start.setDate(end.getDate() - 7);
     } else if (value === "30days") {
       start.setDate(end.getDate() - 30);
     } else if (value === "thisMonth") {
       start.setDate(1);
+    } else if (value === "thisYear") {
+      start.setMonth(0, 1);
     }
 
     if (value !== "custom") {
@@ -47,9 +53,11 @@ export function ReportFilter({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="thisWeek">Tuần này</SelectItem>
           <SelectItem value="7days">7 ngày qua</SelectItem>
           <SelectItem value="30days">30 ngày qua</SelectItem>
           <SelectItem value="thisMonth">Tháng này</SelectItem>
+          <SelectItem value="thisYear">Năm nay</SelectItem>
           <SelectItem value="custom">Tùy chỉnh...</SelectItem>
         </SelectContent>
       </Select>

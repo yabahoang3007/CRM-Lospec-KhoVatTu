@@ -4,6 +4,7 @@ import {
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  exportSuppliers,
 } from "../controllers/supplierController.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { checkRole } from "../middleware/role.js";
@@ -14,6 +15,7 @@ supplierRouter.use(authMiddleware);
 
 // Ai cũng xem được, nhưng chỉ Admin/Manager mới được sửa đổi
 supplierRouter.get("/", getAllSuppliers);
+supplierRouter.get("/export", exportSuppliers);
 supplierRouter.post("/", checkRole(["admin", "manager"]), createSupplier);
 supplierRouter.put("/:id", checkRole(["admin", "manager"]), updateSupplier);
 supplierRouter.delete("/:id", checkRole(["admin", "manager"]), deleteSupplier);

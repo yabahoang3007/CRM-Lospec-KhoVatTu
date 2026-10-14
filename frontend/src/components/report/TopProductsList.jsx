@@ -1,18 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package } from "lucide-react";
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    Number(value) || 0
+  );
+
 export function TopProductsList({ data }) {
   return (
     <Card className="col-span-8 lg:col-span-3 shadow-sm flex flex-col">
       <CardHeader>
-        <CardTitle>Top sản phẩm bán chạy</CardTitle>
+        <CardTitle>Top 10 sản phẩm doanh thu cao nhất</CardTitle>
+        <p className="text-xs text-gray-400">(đã trừ hàng trả lại)</p>
       </CardHeader>
       <CardContent className="flex-1 overflow-auto pr-2">
         <div className="space-y-4">
           {data.length > 0 ? (
             data.map((prod, idx) => (
               <div
-                key={prod.product_id}
+                key={prod.id}
                 className="flex items-center p-3 bg-gray-100 rounded-lg border border-gray-100 hover:bg-gray-200 transition-colors"
               >
                 <div
@@ -39,9 +45,11 @@ export function TopProductsList({ data }) {
                 </div>
                 <div className="ml-auto text-right">
                   <p className="text-sm font-bold text-gray-700">
-                    {prod.sold_quantity}
+                    {formatCurrency(prod.revenue)}
                   </p>
-                  <p className="text-xs text-gray-600">đã bán</p>
+                  <p className="text-xs text-gray-600">
+                    {prod.sold_quantity} đã bán
+                  </p>
                 </div>
               </div>
             ))

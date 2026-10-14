@@ -27,13 +27,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Package, Edit, Trash2, Plus, RefreshCw } from "lucide-react";
+import { Search, Package, Edit, Trash2, Plus, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "../ConfirmDeleteDialog";
 
 export function ProductList({ onEdit, refreshTrigger, onAddClick }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   // Client-side filtering states
   const [search, setSearch] = useState("");
@@ -76,6 +77,31 @@ export function ProductList({ onEdit, refreshTrigger, onAddClick }) {
       toast.error("Lỗi tải danh sách sản phẩm");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const response = await api.get("/products/export", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `DanhSachHangHoa_${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Đã xuất danh sách hàng hóa!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi xuất file");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -270,6 +296,15 @@ export function ProductList({ onEdit, refreshTrigger, onAddClick }) {
             title="Tải lại"
           >
             <RefreshCw className="h-4 w-4" />
+          </Button>
+
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            Xuất Excel
           </Button>
 
           <Button variant="default" onClick={onAddClick}>

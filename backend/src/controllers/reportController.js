@@ -172,28 +172,42 @@ export const getRevenueChart = async (req, res) => {
   }
 };
 
-// 3. Top sản phẩm
+// 3. Top sản phẩm theo doanh thu (đã trừ hàng trả lại)
 export const getTopProducts = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     let dateCondition = "";
+    let returnDateCondition = "";
     let params = [];
 
     if (startDate && endDate) {
       dateCondition = `AND date(o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= $1 AND date(o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') <= $2`;
+      returnDateCondition = `AND date(cr.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= $1 AND date(cr.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') <= $2`;
       params = [startDate, endDate];
     }
 
     const result = await pool.query(
       `
-        SELECT p.id, p.name, p.sku, SUM(oi.quantity) as sold_quantity, SUM(oi.total) as revenue
+        SELECT
+          p.id, p.name, p.sku,
+          SUM(oi.quantity) as sold_quantity,
+          SUM(oi.total) as gross_revenue,
+          COALESCE(r.returned_amount, 0) as returned_amount,
+          SUM(oi.total) - COALESCE(r.returned_amount, 0) as revenue
         FROM order_items oi
         JOIN products p ON oi.product_id = p.id
         JOIN orders o ON oi.order_id = o.id
+        LEFT JOIN (
+          SELECT cri.product_id, SUM(cri.total) as returned_amount
+          FROM customer_return_items cri
+          JOIN customer_returns cr ON cr.id = cri.return_id
+          WHERE 1=1 ${returnDateCondition}
+          GROUP BY cri.product_id
+        ) r ON r.product_id = p.id
         WHERE o.status = 'completed' ${dateCondition}
-        GROUP BY p.id, p.name, p.sku
-        ORDER BY sold_quantity DESC
-        LIMIT 5
+        GROUP BY p.id, p.name, p.sku, r.returned_amount
+        ORDER BY revenue DESC
+        LIMIT 10
     `,
       params
     );
@@ -236,15 +250,26 @@ export const exportReport = async (req, res) => {
     `;
 
     const topProdQuery = `
-      SELECT p.name as product_name, SUM(oi.quantity) as sold_quantity, SUM(oi.total) as revenue
+      SELECT
+        p.name as product_name,
+        SUM(oi.quantity) as sold_quantity,
+        SUM(oi.total) - COALESCE(r.returned_amount, 0) as revenue
       FROM order_items oi
       JOIN products p ON oi.product_id = p.id
       JOIN orders o ON oi.order_id = o.id
+      LEFT JOIN (
+        SELECT cri.product_id, SUM(cri.total) as returned_amount
+        FROM customer_return_items cri
+        JOIN customer_returns cr ON cr.id = cri.return_id
+        WHERE date(cr.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= $1
+          AND date(cr.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') <= $2
+        GROUP BY cri.product_id
+      ) r ON r.product_id = p.id
       WHERE o.status = 'completed'
         AND date(o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= $1
         AND date(o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh') <= $2
-      GROUP BY p.id, p.name
-      ORDER BY sold_quantity DESC LIMIT 20
+      GROUP BY p.id, p.name, r.returned_amount
+      ORDER BY revenue DESC LIMIT 20
     `;
 
     const [summaryRes, prodCountRes, dailyRes, topProdRes] = await Promise.all([

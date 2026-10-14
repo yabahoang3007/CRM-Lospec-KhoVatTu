@@ -4,7 +4,8 @@ import {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  exportProducts
 } from "../controllers/productController.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { checkRole } from "../middleware/role.js";
@@ -15,6 +16,7 @@ const productRouter = express.Router();
 productRouter.use(authMiddleware);
 
 productRouter.get("/", getAllProducts);
+productRouter.get("/export", exportProducts);
 productRouter.get("/:id", getProductById);
 
 // Chỉ Admin và Manager được Thêm/Sửa/Xóa

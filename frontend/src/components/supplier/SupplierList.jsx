@@ -22,6 +22,7 @@ import {
   MapPin,
   Building2,
   UserIcon,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SupplierFormDialog } from "./SupplierFormDialog";
@@ -40,6 +41,7 @@ export function SupplierList() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchSuppliers();
@@ -61,6 +63,31 @@ export function SupplierList() {
   const handleAdd = () => {
     setSelectedSupplier(null);
     setIsFormOpen(true);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const response = await api.get("/suppliers/export", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `DanhSachNhaCungCap_${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Đã xuất danh sách nhà cung cấp!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi xuất file");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleEdit = (supplier) => {
@@ -114,6 +141,14 @@ export function SupplierList() {
             title="Làm mới"
           >
             <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            Xuất Excel
           </Button>
           <Button variant="default" onClick={handleAdd}>
             <Plus className="h-4 w-4" /> Thêm nhà cung cấp
