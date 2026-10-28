@@ -25,6 +25,7 @@ import {
   Trash2,
   Receipt,
   PackageMinus,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PaymentFormDialog } from "./PaymentFormDialog";
@@ -54,6 +55,7 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     if (!entityId) return;
@@ -76,6 +78,34 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
   const handleChanged = () => {
     fetchDetail();
     if (onChanged) onChanged();
+  };
+
+  const handleExport = async () => {
+    if (!entityId) return;
+    setExporting(true);
+    try {
+      const response = await api.get(`/debts/${type}s/${entityId}/export`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `SoCongNo_${(detail?.name || "").replace(/[^\w]+/g, "_")}_${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Đã xuất sổ công nợ!");
+    } catch (error) {
+      console.error("Export ledger error:", error);
+      toast.error("Lỗi khi xuất file");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const confirmDeleteRow = async () => {
@@ -177,6 +207,18 @@ export function DebtDetailDialog({ open, onOpenChange, type, entityId, onChanged
               </div>
 
               <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={exporting}
+                >
+                  {exporting ? (
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-1" />
+                  )}
+                  Xuất Excel
+                </Button>
                 {isCustomer && (
                   <Button
                     variant="outline"

@@ -12,6 +12,8 @@ import {
   getSupplierDebtDetail,
   createSupplierPayment,
   deleteSupplierPayment,
+  exportCustomerLedger,
+  exportSupplierLedger,
 } from "../controllers/debtController.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { checkRole } from "../middleware/role.js";
@@ -24,6 +26,7 @@ debtRouter.use(authMiddleware);
 debtRouter.get("/returns", getAllCustomerReturns);
 debtRouter.get("/customers", getCustomerDebts);
 debtRouter.get("/customers/:id", getCustomerDebtDetail);
+debtRouter.get("/customers/:id/export", exportCustomerLedger);
 debtRouter.post(
   "/customers/:id/payments",
   checkRole(["admin", "manager"]),
@@ -49,6 +52,7 @@ debtRouter.delete(
 // Công nợ nhà cung cấp
 debtRouter.get("/suppliers", getSupplierDebts);
 debtRouter.get("/suppliers/:id", getSupplierDebtDetail);
+debtRouter.get("/suppliers/:id/export", exportSupplierLedger);
 debtRouter.post(
   "/suppliers/:id/payments",
   checkRole(["admin", "manager"]),
