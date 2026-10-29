@@ -1,4 +1,46 @@
 import { pool } from "../config/database.js";
+import { csvRow } from "../utils/csv.js";
+
+// Xuất toàn bộ danh sách nhà cung cấp ra file Excel (CSV), kèm công nợ hiện tại
+export const exportSuppliers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT v.name, v.phone, v.address, s.contact_person, s.tax_code, v.balance
+       FROM view_supplier_debts v
+       JOIN suppliers s ON s.id = v.id
+       ORDER BY v.name`
+    );
+
+    let csv = "﻿";
+    csv += csvRow([
+      "Tên nhà cung cấp",
+      "Số điện thoại",
+      "Địa chỉ",
+      "Người liên hệ",
+      "Mã số thuế",
+      "Công nợ hiện tại",
+    ]);
+    result.rows.forEach((s) => {
+      csv += csvRow([
+        s.name,
+        s.phone,
+        s.address,
+        s.contact_person,
+        s.tax_code,
+        s.balance,
+      ]);
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=DanhSachNhaCungCap_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // Lấy danh sách nhà cung cấp
 export const getAllSuppliers = async (req, res) => {

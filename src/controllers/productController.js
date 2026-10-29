@@ -1,4 +1,50 @@
 import { pool } from "../config/database.js";
+import { csvRow } from "../utils/csv.js";
+
+// Xuất toàn bộ danh sách sản phẩm ra file Excel (CSV)
+export const exportProducts = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT sku, barcode, name, category, unit, price, cost, stock_quantity, is_active
+       FROM products ORDER BY created_at DESC`
+    );
+
+    let csv = "﻿";
+    csv += csvRow([
+      "Mã SKU",
+      "Mã vạch",
+      "Tên sản phẩm",
+      "Loại hàng",
+      "Đơn vị",
+      "Giá bán",
+      "Giá vốn",
+      "Tồn kho",
+      "Trạng thái",
+    ]);
+    result.rows.forEach((p) => {
+      csv += csvRow([
+        p.sku,
+        p.barcode,
+        p.name,
+        p.category,
+        p.unit,
+        p.price,
+        p.cost,
+        p.stock_quantity,
+        p.is_active ? "Đang kinh doanh" : "Ngừng kinh doanh",
+      ]);
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=DanhSachHangHoa_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // 1. Lấy danh sách sản phẩm (Có hỗ trợ lọc active)
 export const getAllProducts = async (req, res) => {

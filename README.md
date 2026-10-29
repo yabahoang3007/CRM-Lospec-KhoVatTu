@@ -1,6 +1,6 @@
-# 🚀 LOSPEC - Hệ Thống Quản Lý Bán Hàng & CRM Toàn Diện
+# 🚀 Kingsheet CRM - Hệ Thống Quản Lý Bán Hàng & CRM Toàn Diện
 
-LOSPEC là giải pháp phần mềm quản lý bán hàng (POS) và quan hệ khách hàng (CRM) hiện đại, được thiết kế tối ưu cho các doanh nghiệp bán lẻ vừa và nhỏ. Hệ thống tập trung vào trải nghiệm người dùng mượt mà, tốc độ xử lý nhanh và báo cáo trực quan theo thời gian thực.
+Kingsheet CRM là giải pháp phần mềm quản lý bán hàng (POS) và quan hệ khách hàng (CRM) hiện đại, được thiết kế tối ưu cho các doanh nghiệp bán lẻ vừa và nhỏ. Hệ thống tập trung vào trải nghiệm người dùng mượt mà, tốc độ xử lý nhanh và báo cáo trực quan theo thời gian thực.
 
 ---
 

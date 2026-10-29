@@ -1,4 +1,96 @@
 import { pool } from "../config/database.js";
+import { csvRow } from "../utils/csv.js";
+
+const LEDGER_TYPE_LABEL = {
+  customer: {
+    charge: "Hóa đơn bán hàng",
+    payment: "Phiếu thu",
+    return: "Phiếu trả hàng",
+  },
+  supplier: {
+    charge: "Phiếu nhập hàng",
+    payment: "Phiếu chi",
+  },
+};
+
+// Xuất sổ công nợ (lịch sử mua/trả hàng/thanh toán) của 1 khách hàng/NCC ra Excel
+const exportLedger = (type) => async (req, res) => {
+  try {
+    const { id } = req.params;
+    const isCustomer = type === "customer";
+    const table = isCustomer ? "view_customer_debts" : "view_supplier_debts";
+
+    const debtRes = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+    if (debtRes.rows.length === 0)
+      return res.status(404).json({
+        message: isCustomer ? "Khách hàng không tồn tại" : "Nhà cung cấp không tồn tại",
+      });
+    const entity = debtRes.rows[0];
+
+    const ledgerQuery = isCustomer
+      ? `
+        SELECT id, 'charge' AS type, order_number AS code, created_at AS date, total AS amount, notes
+        FROM orders WHERE customer_id = $1 AND status = 'completed'
+        UNION ALL
+        SELECT id, 'payment' AS type, payment_number AS code, created_at AS date, amount, notes
+        FROM customer_payments WHERE customer_id = $1
+        UNION ALL
+        SELECT id, 'return' AS type, return_number AS code, created_at AS date, total AS amount, notes
+        FROM customer_returns WHERE customer_id = $1
+        ORDER BY date ASC
+      `
+      : `
+        SELECT id, 'charge' AS type, po_number AS code, created_at AS date, total AS amount, notes
+        FROM purchase_orders WHERE supplier_id = $1 AND status = 'received'
+        UNION ALL
+        SELECT id, 'payment' AS type, payment_number AS code, created_at AS date, amount, notes
+        FROM supplier_payments WHERE supplier_id = $1
+        ORDER BY date ASC
+      `;
+    const ledgerRes = await pool.query(ledgerQuery, [id]);
+
+    let csv = "﻿";
+    csv += csvRow([`SỔ CÔNG NỢ ${isCustomer ? "KHÁCH HÀNG" : "NHÀ CUNG CẤP"}`]);
+    csv += csvRow([isCustomer ? "Khách hàng" : "Nhà cung cấp", entity.name]);
+    csv += csvRow(["Số điện thoại", entity.phone]);
+    csv += csvRow(["Địa chỉ", entity.address]);
+    csv += csvRow(["Ngày xuất", new Date().toLocaleString("vi-VN")]);
+    csv += "\n";
+    csv += csvRow(["Nợ đầu kỳ", entity.opening_balance]);
+    csv += csvRow([isCustomer ? "Đã thu" : "Đã trả", entity.paid_total]);
+    csv += csvRow([isCustomer ? "Còn phải thu" : "Còn phải trả", entity.balance]);
+    csv += "\n";
+
+    csv += csvRow(["Ngày", "Chứng từ", "Loại", "Phát sinh", "Số dư", "Ghi chú"]);
+    let running = Number(entity.opening_balance) || 0;
+    ledgerRes.rows.forEach((row) => {
+      const amount = Number(row.amount) || 0;
+      running += row.type === "charge" ? amount : -amount;
+      csv += csvRow([
+        new Date(row.date).toLocaleDateString("vi-VN"),
+        row.code,
+        LEDGER_TYPE_LABEL[type][row.type],
+        row.type === "charge" ? amount : -amount,
+        running,
+        row.notes,
+      ]);
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=SoCongNo_${entity.name.replace(/[^\w]+/g, "_")}_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`
+    );
+    res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const exportCustomerLedger = exportLedger("customer");
+export const exportSupplierLedger = exportLedger("supplier");
 
 // ==================== CÔNG NỢ KHÁCH HÀNG ====================
 
