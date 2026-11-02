@@ -43,6 +43,7 @@ import {
 import { toast } from "sonner";
 import { CustomerFormDialog } from "../customer/CustomerFormDialog";
 import { printReceipt } from "./ReceiptPrinter";
+import { printStockExportSlip } from "./StockExportReceiptPrinter";
 
 export function POSView() {
   const [products, setProducts] = useState([]);
@@ -154,6 +155,7 @@ export function POSView() {
           productId: product.id,
           productName: product.name,
           sku: product.sku,
+          unit: product.unit,
           unitPrice: Number(product.price) || 0,
           quantity: 1,
           image: product.image_url,
@@ -300,6 +302,15 @@ export function POSView() {
     });
   };
 
+  const handlePrintStockExportSlip = () => {
+    printStockExportSlip({
+      order: lastOrder,
+      items: lastOrderItems,
+      customer: lastOrderCustomer,
+      settings,
+    });
+  };
+
   const handlePayment = async () => {
     if (cart.length === 0) return toast.error("Giỏ hàng trống");
     if (isCreditSale && !selectedCustomer)
@@ -364,13 +375,44 @@ export function POSView() {
     <div className="h-full flex flex-col md:flex-row gap-4">
       {/* LEFT: PRODUCTS GRID */}
       <div className="flex-1 flex flex-col gap-4 h-full min-h-0">
-        <div className="flex flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg shadow-sm border">
-          <Input
-            placeholder="Tìm tên, SKU, barcode..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            icon={<Search size={20} />}
-          />
+        <div className="relative flex flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg shadow-sm border">
+          <div className="relative flex-1">
+            <Input
+              placeholder="Tìm tên, SKU, barcode..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              icon={<Search size={20} />}
+            />
+            {search && (
+              <div className="absolute z-20 w-full bg-white border rounded-md shadow-lg mt-1 max-h-72 overflow-y-auto">
+                {filteredProducts.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500">
+                    Không tìm thấy sản phẩm
+                  </div>
+                ) : (
+                  filteredProducts.slice(0, 8).map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex justify-between items-center gap-2 border-b last:border-b-0"
+                      onClick={() => {
+                        addToCart(p);
+                        setSearch("");
+                      }}
+                    >
+                      <span className="flex-1 min-w-0 truncate">
+                        {p.name}{" "}
+                        <span className="text-gray-400">[{p.sku}]</span>
+                      </span>
+                      <span className="text-gray-600 shrink-0 font-medium">
+                        {formatCurrency(p.price)}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
           <Button
             variant="outline"
             size="icon"
@@ -845,6 +887,9 @@ export function POSView() {
           <DialogFooter className="justify-center gap-2 mt-4">
             <Button variant="outline" onClick={handleCloseReceipt}>
               Đóng
+            </Button>
+            <Button variant="outline" onClick={handlePrintStockExportSlip}>
+              <Printer className="mr-1 h-4 w-4" /> Phiếu xuất kho
             </Button>
             <Button onClick={handlePrintReceipt}>
               <Printer className="mr-1 h-4 w-4" /> In hóa đơn

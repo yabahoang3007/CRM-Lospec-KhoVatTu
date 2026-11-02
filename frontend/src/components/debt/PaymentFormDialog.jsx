@@ -91,13 +91,15 @@ export function PaymentFormDialog({
 
       toast.success(isCustomer ? "Đã ghi phiếu thu" : "Đã ghi phiếu chi");
 
-      const balanceAfter = (Number(entity.balance) || 0) - amount;
+      const balanceBefore = Number(entity.balance) || 0;
+      const balanceAfter = balanceBefore - amount;
 
       printDebtReceipt({
         type,
         payment,
         entity,
         settings,
+        balanceBefore,
         balanceAfter,
       });
 

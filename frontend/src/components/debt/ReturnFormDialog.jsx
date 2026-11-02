@@ -39,6 +39,9 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchFromHistory, setSearchFromHistory] = useState(false);
+  const [purchasedProducts, setPurchasedProducts] = useState([]);
+  const [inputFocused, setInputFocused] = useState(false);
   const [items, setItems] = useState([]);
   const [discount, setDiscount] = useState("0");
   const [notes, setNotes] = useState("");
@@ -50,18 +53,46 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
       setNotes("");
       setSearchTerm("");
       setSearchResults([]);
+      setPurchasedProducts([]);
       api
         .get("/settings")
         .then(({ data }) => setSettings(data || {}))
         .catch(() => {});
+      if (entity?.id) {
+        api
+          .get(`/debts/customers/${entity.id}/purchased-products`)
+          .then(({ data }) => setPurchasedProducts(data || []))
+          .catch(() => {});
+      }
     }
-  }, [open]);
+  }, [open, entity?.id]);
 
+  // Ưu tiên gợi ý từ danh sách hàng khách này từng mua; chỉ gọi API tìm
+  // kiếm toàn bộ sản phẩm khi không khớp gì trong lịch sử mua của khách.
   useEffect(() => {
-    if (!open || !searchTerm.trim()) {
+    if (!open) {
       setSearchResults([]);
       return;
     }
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) {
+      setSearchFromHistory(true);
+      setSearchResults(purchasedProducts.slice(0, 10));
+      return;
+    }
+
+    const localMatches = purchasedProducts.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(term) || p.sku?.toLowerCase().includes(term)
+    );
+    if (localMatches.length > 0) {
+      setSearchFromHistory(true);
+      setSearchResults(localMatches);
+      return;
+    }
+
+    setSearchFromHistory(false);
     setSearching(true);
     const timer = setTimeout(() => {
       api
@@ -71,7 +102,7 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
         .finally(() => setSearching(false));
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, open]);
+  }, [searchTerm, open, purchasedProducts]);
 
   const addItem = (product) => {
     if (items.some((it) => it.product_id === product.id)) {
@@ -184,8 +215,10 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
               value={searchTerm}
               icon={<Search size={18} />}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => setInputFocused(false), 150)}
             />
-            {searchTerm && (
+            {(inputFocused || searchTerm) && (
               <div className="absolute z-10 w-full bg-white border rounded-md shadow-lg mt-1 max-h-56 overflow-y-auto">
                 {searching ? (
                   <div className="p-3 text-sm text-gray-500 flex items-center gap-2">
@@ -193,10 +226,18 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="p-3 text-sm text-gray-500">
-                    Không tìm thấy sản phẩm
+                    {searchTerm
+                      ? "Không tìm thấy sản phẩm"
+                      : "Khách này chưa có lịch sử mua hàng — gõ để tìm toàn bộ sản phẩm"}
                   </div>
                 ) : (
-                  searchResults.map((p) => (
+                  <>
+                    <div className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 sticky top-0">
+                      {searchFromHistory
+                        ? "Hàng khách này từng mua"
+                        : "Tất cả sản phẩm"}
+                    </div>
+                    {searchResults.map((p) => (
                     <button
                       type="button"
                       key={p.id}
@@ -211,7 +252,8 @@ export function ReturnFormDialog({ open, onOpenChange, entity, onSuccess }) {
                         {formatCurrency(p.price)}
                       </span>
                     </button>
-                  ))
+                    ))}
+                  </>
                 )}
               </div>
             )}

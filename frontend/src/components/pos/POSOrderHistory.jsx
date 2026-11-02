@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { printReceipt } from "./ReceiptPrinter";
+import { printStockExportSlip } from "./StockExportReceiptPrinter";
 
 export function POSOrderHistory() {
   const [orders, setOrders] = useState([]);
@@ -149,6 +150,19 @@ export function POSOrderHistory() {
       },
       balanceBefore,
       balanceAfter,
+    });
+  };
+
+  const handlePrintStockExportSlip = () => {
+    printStockExportSlip({
+      order: selectedOrder,
+      items: selectedOrder.items,
+      customer: {
+        name: selectedOrder.customer_name,
+        phone: selectedOrder.customer_phone,
+        address: selectedOrder.customer_address,
+      },
+      settings,
     });
   };
 
@@ -373,6 +387,9 @@ export function POSOrderHistory() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowDetail(false)}>
                   Đóng
+                </Button>
+                <Button variant="outline" onClick={handlePrintStockExportSlip}>
+                  <Printer className="h-4 w-4 mr-1" /> In phiếu xuất kho
                 </Button>
                 <Button onClick={handlePrintReceipt}>
                   <Printer className="h-4 w-4 mr-1" /> In hóa đơn

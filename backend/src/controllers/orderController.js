@@ -59,7 +59,7 @@ export const getOrderDetail = async (req, res) => {
       return res.status(404).json({ message: "Đơn hàng không tồn tại" });
 
     const itemsQuery = `
-      SELECT oi.*, p.sku, p.image_url
+      SELECT oi.*, p.sku, p.image_url, p.unit
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = $1

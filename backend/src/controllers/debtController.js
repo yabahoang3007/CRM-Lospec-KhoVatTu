@@ -13,19 +13,33 @@ const LEDGER_TYPE_LABEL = {
   },
 };
 
-// Xuất sổ công nợ (lịch sử mua/trả hàng/thanh toán) của 1 khách hàng/NCC ra Excel
+const formatDateTimeCell = (date) => {
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}\n${hh}:${mi}`;
+};
+
+// Xuất sổ công nợ chi tiết (từng hóa đơn + từng dòng sản phẩm, giống mẫu
+// "Công nợ chi tiết khách hàng" quen thuộc) của 1 khách hàng/NCC ra Excel
 const exportLedger = (type) => async (req, res) => {
   try {
     const { id } = req.params;
     const isCustomer = type === "customer";
     const table = isCustomer ? "view_customer_debts" : "view_supplier_debts";
 
-    const debtRes = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+    const [debtRes, settingsRes] = await Promise.all([
+      pool.query(`SELECT * FROM ${table} WHERE id = $1`, [id]),
+      pool.query("SELECT store_name, store_address, store_phone FROM app_settings WHERE id = 1"),
+    ]);
     if (debtRes.rows.length === 0)
       return res.status(404).json({
         message: isCustomer ? "Khách hàng không tồn tại" : "Nhà cung cấp không tồn tại",
       });
     const entity = debtRes.rows[0];
+    const store = settingsRes.rows[0] || {};
 
     const ledgerQuery = isCustomer
       ? `
@@ -47,39 +61,97 @@ const exportLedger = (type) => async (req, res) => {
         FROM supplier_payments WHERE supplier_id = $1
         ORDER BY date ASC
       `;
-    const ledgerRes = await pool.query(ledgerQuery, [id]);
+    const itemsQuery = isCustomer
+      ? `
+        SELECT oi.order_id AS parent_id, oi.product_sku AS sku, oi.product_name AS name,
+               COALESCE(p.unit, '') AS unit, oi.quantity, oi.unit_price, oi.total
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        JOIN orders o ON o.id = oi.order_id
+        WHERE o.customer_id = $1 AND o.status = 'completed'
+        UNION ALL
+        SELECT cri.return_id AS parent_id, cri.product_sku, cri.product_name,
+               COALESCE(p.unit, ''), cri.quantity, cri.unit_price, cri.total
+        FROM customer_return_items cri
+        LEFT JOIN products p ON p.id = cri.product_id
+        JOIN customer_returns cr ON cr.id = cri.return_id
+        WHERE cr.customer_id = $1
+      `
+      : `
+        SELECT wt.reference_id AS parent_id, p.sku, p.name,
+               COALESCE(p.unit, '') AS unit, wt.quantity, wt.unit_price, wt.total
+        FROM warehouse_transactions wt
+        JOIN products p ON p.id = wt.product_id
+        JOIN purchase_orders po ON po.id = wt.reference_id
+        WHERE po.supplier_id = $1 AND po.status = 'received'
+          AND wt.transaction_type = 'import' AND wt.reference_type = 'purchase_order'
+      `;
+
+    const [ledgerRes, itemsRes] = await Promise.all([
+      pool.query(ledgerQuery, [id]),
+      pool.query(itemsQuery, [id]),
+    ]);
+
+    const itemsByParent = {};
+    itemsRes.rows.forEach((row) => {
+      (itemsByParent[row.parent_id] ??= []).push(row);
+    });
+
+    let debitTotal = 0;
+    let creditTotal = 0;
+    ledgerRes.rows.forEach((row) => {
+      if (row.type === "charge") debitTotal += Number(row.amount) || 0;
+      else creditTotal += Number(row.amount) || 0;
+    });
 
     let csv = "﻿";
-    csv += csvRow([`SỔ CÔNG NỢ ${isCustomer ? "KHÁCH HÀNG" : "NHÀ CUNG CẤP"}`]);
-    csv += csvRow([isCustomer ? "Khách hàng" : "Nhà cung cấp", entity.name]);
-    csv += csvRow(["Số điện thoại", entity.phone]);
-    csv += csvRow(["Địa chỉ", entity.address]);
-    csv += csvRow(["Ngày xuất", new Date().toLocaleString("vi-VN")]);
+    csv += csvRow([(store.store_name || "CỬA HÀNG").toUpperCase()]);
+    csv += csvRow(["Địa chỉ", store.store_address]);
+    csv += csvRow(["Điện thoại", store.store_phone]);
     csv += "\n";
-    csv += csvRow(["Nợ đầu kỳ", entity.opening_balance]);
-    csv += csvRow([isCustomer ? "Đã thu" : "Đã trả", entity.paid_total]);
-    csv += csvRow([isCustomer ? "Còn phải thu" : "Còn phải trả", entity.balance]);
+    csv += csvRow([`CÔNG NỢ CHI TIẾT ${isCustomer ? "KHÁCH HÀNG" : "NHÀ CUNG CẤP"} (toàn bộ lịch sử)`]);
+    csv += csvRow([
+      isCustomer ? "Khách hàng" : "Nhà cung cấp", entity.name, "", "",
+      "Nợ đầu kỳ", entity.opening_balance,
+    ]);
+    csv += csvRow([
+      "Điện thoại", entity.phone, "", "",
+      "Phát sinh trong kỳ", debitTotal, creditTotal,
+    ]);
+    csv += csvRow([
+      "Địa chỉ", entity.address, "", "",
+      "Nợ cuối kỳ", entity.balance,
+    ]);
     csv += "\n";
 
-    csv += csvRow(["Ngày", "Chứng từ", "Loại", "Phát sinh", "Số dư", "Ghi chú"]);
-    let running = Number(entity.opening_balance) || 0;
+    csv += csvRow(["Thời gian", "Mã", "Diễn giải", "ĐVT", "SL", "Đơn giá", "Thành tiền", "Ghi nợ", "Ghi có"]);
     ledgerRes.rows.forEach((row) => {
       const amount = Number(row.amount) || 0;
-      running += row.type === "charge" ? amount : -amount;
       csv += csvRow([
-        new Date(row.date).toLocaleDateString("vi-VN"),
+        formatDateTimeCell(row.date),
         row.code,
         LEDGER_TYPE_LABEL[type][row.type],
-        row.type === "charge" ? amount : -amount,
-        running,
-        row.notes,
+        "", "", "", "",
+        row.type === "charge" ? amount : "",
+        row.type !== "charge" ? amount : "",
       ]);
+      (itemsByParent[row.id] || []).forEach((it) => {
+        csv += csvRow([
+          "", it.sku, it.name, it.unit, it.quantity, it.unit_price, it.total, "", "",
+        ]);
+      });
     });
+
+    csv += "\n";
+    csv += csvRow(["", "", "", "", "", "", "", `Ngày xuất: ${new Date().toLocaleString("vi-VN")}`]);
+    csv += "\n";
+    csv += csvRow([isCustomer ? "Khách hàng" : "Nhà cung cấp", "", "", "", "Người lập biểu", "", "", "TM Công ty"]);
+    csv += csvRow(["(Ký, họ tên)", "", "", "", "(Ký, họ tên)", "", "", "(Ký, họ tên)"]);
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=SoCongNo_${entity.name.replace(/[^\w]+/g, "_")}_${new Date()
+      `attachment; filename=CongNoChiTiet_${entity.name.replace(/[^\w]+/g, "_")}_${new Date()
         .toISOString()
         .slice(0, 10)}.csv`
     );
@@ -91,6 +163,26 @@ const exportLedger = (type) => async (req, res) => {
 
 export const exportCustomerLedger = exportLedger("customer");
 export const exportSupplierLedger = exportLedger("supplier");
+
+// Danh sách sản phẩm 1 khách hàng từng mua — dùng làm gợi ý khi lập phiếu trả hàng
+export const getCustomerPurchasedProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT p.id, p.name, p.sku, p.unit, p.price, MAX(o.created_at) AS last_purchased_at
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       JOIN products p ON p.id = oi.product_id
+       WHERE o.customer_id = $1 AND o.status = 'completed'
+       GROUP BY p.id, p.name, p.sku, p.unit, p.price
+       ORDER BY last_purchased_at DESC`,
+      [id]
+    );
+    res.status(200).json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // ==================== CÔNG NỢ KHÁCH HÀNG ====================
 

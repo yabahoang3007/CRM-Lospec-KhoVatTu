@@ -65,7 +65,7 @@ const formatDate = (date) =>
     : "";
 
 // "Ngày 17 tháng 08 năm 2026" — dùng cho dòng ký tên
-const formatDateLong = (date) => {
+export const formatDateLong = (date) => {
   if (!date) return "";
   const d = new Date(date);
   const dd = String(d.getDate()).padStart(2, "0");
@@ -84,14 +84,14 @@ export const buildPrintHeader = (settings = {}) => `
       ${
         settings.bank_account_no
           ? `STK: ${settings.bank_account_no}${
-              settings.bank_name ? " - " + settings.bank_name : ""
+              settings.bank_name ? " " + settings.bank_name : ""
             }${settings.bank_owner ? " - " + settings.bank_owner : ""}<br/>`
           : ""
       }
       ${
         settings.bank_account_no_2
-          ? `STK: ${settings.bank_name_2 ? settings.bank_name_2 + " - " : ""}${
-              settings.bank_account_no_2
+          ? `STK: ${settings.bank_account_no_2}${
+              settings.bank_name_2 ? " " + settings.bank_name_2 : ""
             }${settings.bank_owner_2 ? " - " + settings.bank_owner_2 : ""}<br/>`
           : ""
       }
