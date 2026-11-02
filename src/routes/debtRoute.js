@@ -14,6 +14,7 @@ import {
   deleteSupplierPayment,
   exportCustomerLedger,
   exportSupplierLedger,
+  getCustomerPurchasedProducts,
 } from "../controllers/debtController.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { checkRole } from "../middleware/role.js";
@@ -27,6 +28,7 @@ debtRouter.get("/returns", getAllCustomerReturns);
 debtRouter.get("/customers", getCustomerDebts);
 debtRouter.get("/customers/:id", getCustomerDebtDetail);
 debtRouter.get("/customers/:id/export", exportCustomerLedger);
+debtRouter.get("/customers/:id/purchased-products", getCustomerPurchasedProducts);
 debtRouter.post(
   "/customers/:id/payments",
   checkRole(["admin", "manager"]),
